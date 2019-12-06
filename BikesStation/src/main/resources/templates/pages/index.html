@@ -8,8 +8,11 @@
 	<link rel="stylesheet" href="../../../css/bootstrap.min.css" th:href="@{/css/bootstrap.min.css}" />
 	<link rel="stylesheet" href="../../../css/font-awesome.min.css" th:href="@{/css/font-awesome.min.css}" />
 	<link rel="stylesheet" href="../../../css/style.css" th:href="@{/css/style.css}" />
+	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css"
+	   integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+	   crossorigin=""/>
 </head>
-	
+
 <body class ="left-menu">
 	<div class="menu-wrapper">
     <header class="vertical-header">
@@ -37,25 +40,33 @@
 	
 	<div>
 	
-	    <div th:if="${CityChoose}">  
-	        <table>
-	            <tr>
-	                <td>Nom Station</td>
-	                <td>Capacité Total</td>
-	                <td>Localisation lat</td>
-	                <td>Localisation long</td>
-	            </tr>
-	            
-	            <tr th:each="bikeStation : ${CityChoose.bikesStations}" >
-	                <td th:text="${bikeStation.name}"></td>
-	                <td th:text="${bikeStation.capacity}"></td>
-	                <td th:text="${bikeStation.localisation.lat}"></td>
-	                <td th:text="${bikeStation.localisation.lg}"></td>
-	            </tr>
-	        </table>
-	    </div>
+    <div th:if="${CityChoose}">  
+        <!--table>
+            <tr>
+                <td>Nom Station</td>
+                <td>Capacité Total</td>
+                <td>Localisation lat</td>
+                <td>Localisation long</td>
+            </tr>
+            
+            <tr th:each="bikeStation : ${CityChoose.bikesStations}" >
+                <td th:text="${bikeStation.name}"></td>
+                <td th:text="${bikeStation.capacity}"></td>
+                <td th:text="${bikeStation.localisation.lat}"></td>
+                <td th:text="${bikeStation.localisation.lg}"></td>
+            </tr>
+        </table-->
+        
+    </div>
+    
+    <div id="map" style="width:700px; height:700px; margin:auto;"></div>
 
 	</div>
+	
+	 <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"
+	   integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew=="
+	   crossorigin=""></script>
+	<script type="text/javascript" src="../../../js/map_manager.js" th:href="@{/js/map_manager.js}"> </script>
 </body>
 
 </html>
