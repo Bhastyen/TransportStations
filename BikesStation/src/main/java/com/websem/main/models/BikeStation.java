@@ -9,7 +9,7 @@ public class BikeStation {
 	private String capacity;
 	private LocalisationCity localisation;
 	private String name;
-	
+	private HistoriqueStation stateStation;//TODO List<HistoriqueStation>
 	
 	public BikeStation(String idStation, String capacity, String name,LocalisationCity localisation,
 			List<HistoriqueStation> listHistoriqueStation) {
