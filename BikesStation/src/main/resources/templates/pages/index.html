@@ -18,18 +18,17 @@
 	<script type="text/javascript" src="../../../js/city_manager.js" th:href="@{/js/city_manager.js}"> </script>
 	
     <div id="my-left-panel">
-	    <form action ="/bikes" method="POST" id="cities">
-	       <table>
-		        <tr th:each="city : ${Cities}">
-		             <td>
-		             	<label th:if="${CityChoose == null || city.name != CityChoose.name}"  for="city" class=""> 
-		             		<input type="submit" id="city" name="city" onclick="changeStyleCity(this);" th:value="${city.name}"/>
-		             	</label>
-		             	<div th:unless="${CityChoose == null || city.name != CityChoose.name}" id="city" th:text="${city.name}" onclick="changeStyleCity(this); window.location.replace('http://localhost:8080/');" class="come-back"></div>
-		             </td>
-				</tr>
-	       </table>
-	    </form>
+       <table id="cities">
+        <tr th:each="city : ${Cities}">
+            <td>
+			 <form action ="/" th:method="${CityChoose == null || city.name != CityChoose.name? 'POST' : 'GET'}">
+	           	 <label for="city" th:class="${CityChoose == null || city.name != CityChoose.name? '' : 'active'}">
+	           		 <input type="submit" id="city" name="city" onclick="" th:value="${city.name}"/>
+	           	 </label>
+			 </form>
+            </td>
+		</tr>
+       </table>
 	</div>
 	
 	<div id="my_global_container">
@@ -64,14 +63,30 @@
 			  integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew=="
 			  crossorigin=""></script>
 			
-			<script type="text/javascript" src="../../../js/map_manager.js" th:href="@{/js/map_manager.js}"> </script>
+			<script type="text/javascript" src="../../../js/map_manager.js" th:href="@{/js/map_manager.js}"></script>
 			
-		    <div th:if="${CityChoose}">
-		    	<div th:if="${MapChoose}">
-		        	<script type="text/javascript" th:inline="javascript">
-						changeCity(/*[[${CityChoose}]]*/);
-					</script>
-		        </div>
+			<script type="text/javascript" th:inline="javascript" th:if="${CityChoose == null && lastLocCity == null}">
+				initMap(/*[[${Cities}]]*/, 45.43992, 4.3896303, 4);
+			</script>
+			
+			<script type="text/javascript" th:inline="javascript" th:if="${CityChoose != null && lastLocCity == null}">
+				initMap(/*[[${Cities}]]*/, /*[[${CityChoose.localisation.lat}]]*/, /*[[${CityChoose.localisation.lg}]]*/, 4);
+				changeCity(/*[[${CityChoose}]]*/);
+			</script>
+			
+			<script type="text/javascript" th:inline="javascript" th:if="${CityChoose == null && lastLocCity != null}">
+				initMap(/*[[${Cities}]]*/, /*[[${lastLocCity.lat}]]*/, /*[[${lastLocCity.lg}]]*/, 12);
+        		reinitMap(/*[[${lastLocCity}]]*/);
+			</script>
+			
+			<script type="text/javascript" th:inline="javascript" th:if="${CityChoose != null && lastLocCity != null}">
+				initMap(null, /*[[${CityChoose.localisation.lat}]]*/, /*[[${CityChoose.localisation.lg}]]*/, 12);
+			</script>
+			
+		    <div th:if="${CityChoose != null && lastLocCity == null}">
+	        	<script type="text/javascript" th:inline="javascript">
+	        	
+				</script>
 			    
 			    <div th:if="${TableChoose}">  
 			        <!--table>
@@ -88,8 +103,20 @@
 			                <td th:text="${bikeStation.localisation.lat}"></td>
 			                <td th:text="${bikeStation.localisation.lg}"></td>
 			            </tr>
-			        </table-->       
+			        </table-->
 		        </div>
+		    </div>
+		    
+		    <div th:if="${CityChoose != null && lastLocCity != null}">
+	        	<script type="text/javascript" th:inline="javascript">
+
+				</script>
+		    </div>
+		    
+		    <div th:if="${CityChoose == null && lastLocCity != null}">
+	        	<script type="text/javascript" th:inline="javascript">
+
+				</script>
 		    </div>
 	    </div>
 

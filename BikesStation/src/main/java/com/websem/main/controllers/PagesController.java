@@ -40,18 +40,29 @@ import com.websem.main.models.LocalisationCity;
 public class PagesController {
 	
 	@GetMapping("/")
-	public String home(ModelMap modelMap) {
-		modelMap.put("Cities", listCity());
-		
-		return "pages/index";
+	public String home(@RequestParam(required = false) String city, ModelMap modelMap) {
+		List<City> cities = listCity();
+		modelMap.put("Cities", cities);
+
+    	// donne la derniere localisation visitee
+    	if (city != null) {
+	    	for (City c : cities) {
+	    		if (c.getName().equals(city)) {
+	        		modelMap.put("lastLocCity", c.getLocalisation());
+	        		break;
+	    		}
+	    	}
+    	}
+    	
+    	return "pages/index";
 	}
 	
 
-    @RequestMapping(value = "/bikes", method = RequestMethod.POST)
+    @RequestMapping(value = "/", method = RequestMethod.POST)
     public String promptStationCity(@RequestParam("city") String name, ModelMap modelMap) throws JSONException, IOException{
     	modelMap.put("Cities", listCity());
     	modelMap.put("CityChoose", cityStation(name));
-    	modelMap.put("MapChoose", true);
+    	//modelMap.put("MapChoose", true);
 
         //TODO update dynamic with city name
     	UpdateCity(name);
@@ -146,6 +157,11 @@ public class PagesController {
         
         qExec.close();
         conn.close();
+
+	    // recupere la position de chaque ville
+        for (int i = 0; i < listCity.size(); i++) {
+        	listCity.get(i).setLocalisation(getLocalisation(listCity.get(i).getName()));
+        }
         
         return  listCity;
     }
@@ -189,12 +205,25 @@ public class PagesController {
         }
         
         qExec.close();
+	    conn.close();
+	    
+	    // recupere la position de la ville
+    	city.setLocalisation(getLocalisation(city.getName()));
         
-        qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos> "
+        return city;
+    }
+    
+    
+    private static LocalisationCity getLocalisation(String name) {
+        float avgLat = 0; float avgLon = 0;
+        int nbStation = 0;
+        
+        RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/query");
+        QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos> "
         		+ "SELECT ?n ?lon ?lat { ?v ns0:CityName ?n; ns0:CityPublicTransport _:ns. "
         		+ "_:ns a ns0:CityBikeStation; ns0:StationLocalisation [ns1:lat ?lat; ns1:long ?lon;]."
-        		+ "FILTER (str(?n) = \"" + nameCity + "\" ) } ");
-	    rs = qExec.execSelect();
+        		+ "FILTER (str(?n) = \"" + name + "\" ) } ");
+        ResultSet rs = qExec.execSelect();
 	
 	    // Recuperation des localisations des stations
 	    while(rs.hasNext()) {
@@ -217,9 +246,8 @@ public class PagesController {
 	    qExec.close();
 	    conn.close();
 	    
-	    // associe une longitude et une latitude à la ville cityName : moyenne de la latitude et longitude de ses stations
-    	city.setLocalisation(new LocalisationCity(avgLat / nbStation, avgLon / nbStation));
-        
-        return city;
+	    // renvoie la localisation
+    	return new LocalisationCity(avgLat / nbStation, avgLon / nbStation);
     }
+    
 }
