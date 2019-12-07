@@ -171,12 +171,6 @@ public class PagesController {
         		+ "FILTER (str(?nameCity) = \"" + nameCity + "\" ) }");
         ResultSet rs = qExec.execSelect();
 
-        RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/query");
-        QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos> SELECT ?City ?name ?stationId ?lat ?lon ?capacity WHERE { ?s a ns0:City; ns0:CityPublicTransport _:ns; ns0:CityName ?nameCity . _:ns a ns0:CityBikeStation ;ns0:StationId ?stationId; ns0:Stationname ?name; ns0:StationLocalisation [ns1:lat ?lat; ns1:lon ?lon;] ;ns0:StationTotalcapacity ?capacity FILTER (str(?nameCity) = \""+nameCity+"\" ) }");
-        // System.out.println("conn.query ");
-        ResultSet rs = qExec.execSelect() ;
-        System.out.println("name City"+nameCity + "Requete executer " + rs.getRowNumber());
-
         //Recuperation des noms des villes pour afficher la liste
         while(rs.hasNext()) {
             QuerySolution qs = rs.next();
@@ -225,11 +219,6 @@ public class PagesController {
 	    
 	    // associe une longitude et une latitude à la ville cityName : moyenne de la latitude et longitude de ses stations
     	city.setLocalisation(new LocalisationCity(avgLat / nbStation, avgLon / nbStation));
-    
-        for (int i = 0; i < 5; i++) {
-        	List<HistoriqueStation> h = new ArrayList<>();
-            city.addBikeStation(new BikeStation(nameCity + " " + i, "3", nameCity + " BikeStation " + i, new LocalisationCity(0, 0), h));
-        }
         
         return city;
     }
