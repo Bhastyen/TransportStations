@@ -1,0 +1,11 @@
+Info Bordeaux https://www.wikidata.org/wiki/Q1479
+Static  Bordeaux  https://transport.data.gouv.fr/gbfs/vcub/station_information.json 
+Dynamic Bordeaux https://transport.data.gouv.fr/gbfs/vcub/station_status.json
+
+Info Saint_Etienne https://www.wikidata.org/wiki/Q42716
+Static  Saint_Etienne https://saint-etienne-gbfs.klervi.net/gbfs/en/station_information.json 
+Dynamic Saint_Etienne https://saint-etienne-gbfs.klervi.net/gbfs/en/station_status.json
+
+Info Marseille
+Static Marseille https://transport.data.gouv.fr/gbfs/marseille/station_information.json
+Dynamic Marseille https://transport.data.gouv.fr/gbfs/marseille/station_status.json
