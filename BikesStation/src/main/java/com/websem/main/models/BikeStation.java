@@ -11,7 +11,7 @@ public class BikeStation {
 	private String name;
 	
 	
-	public BikeStation(String idStation, String capacity, String name,LocalisationCity localisation,
+	public BikeStation(String idStation, String capacity, String name, LocalisationCity localisation,
 			List<HistoriqueStation> listHistoriqueStation) {
 		super();
 		this.idStation = idStation;

@@ -5,18 +5,24 @@ import java.util.List;
 
 
 public class City {
-	
 	private String name;
+	private LocalisationCity localisation;
 	private List<BikeStation> bikesStations;
 
+	
+	
 	public City(String name) {
 		this.name = name;
 		bikesStations = new ArrayList<BikeStation>();
 	}
+	
+	public City(String name, LocalisationCity localisation) {
+		this(name);
+		this.setLocalisation(localisation);
+	}
 
 	public City(String name, List<BikeStation> bikesStations) {
-		super();
-		this.name = name;
+		this(name);
 		this.bikesStations = bikesStations;
 	}
 	
@@ -31,5 +37,13 @@ public class City {
 	public void addBikeStation(BikeStation newStation) {
 		if (bikesStations != null)
 			bikesStations.add(newStation);
+	}
+
+	public LocalisationCity getLocalisation() {
+		return localisation;
+	}
+
+	public void setLocalisation(LocalisationCity localisation) {
+		this.localisation = localisation;
 	}
 }

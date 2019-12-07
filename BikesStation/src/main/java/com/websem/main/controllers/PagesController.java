@@ -1,7 +1,9 @@
 package com.websem.main.controllers;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QuerySolution;
@@ -9,6 +11,7 @@ import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFactory;
+import org.hibernate.validator.internal.util.privilegedactions.NewInstance;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,8 +39,11 @@ public class PagesController {
 
     @RequestMapping(value = "/bikes", method = RequestMethod.POST)
     public String promptStationCity(@RequestParam("city") String name, ModelMap modelMap){
-    	modelMap.put("Cities", listCity());
+    	List<City> cities = listCity();
+    	
+    	modelMap.put("Cities", cities);
     	modelMap.put("CityChoose", cityStation(name));
+    	modelMap.put("MapChoose", true);
         
         return "pages/index";
     }
@@ -60,18 +66,17 @@ public class PagesController {
 
     private  static List<City> listCity(){
         List<City> listCity = new ArrayList<City>();
+        
         RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/query");
-        QueryExecution qExec = conn.query("SELECT DISTINCT ?o { ?s <http://semanticweb.org/ontologies/City#CityName> ?o }") ;
-        //QueryExecution qExec = conn.query("SELECT DISTINCT ?s { ?s ?p ?o }") ;
+        QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> PREFIX ns1: <http://geo.> SELECT DISTINCT ?n { ?s ns0:CityName ?n; }") ;
         ResultSet rs = qExec.execSelect();
         
         // Recuperation des noms des villes pour afficher la liste
         while(rs.hasNext()) {
             QuerySolution qs = rs.next();
 
-            Literal objet = qs.getLiteral("o");
-            listCity.add(new City(objet.toString()));
-
+            Literal objet = qs.getLiteral("n");
+            listCity.add(new City(objet.toString(), new LocalisationCity(0,  0)));
         }
         
         qExec.close();
@@ -82,15 +87,26 @@ public class PagesController {
     
 
     private static City cityStation(String nameCity){
+        City city = new City(nameCity, new LocalisationCity(0,  0));
+        float avgLat = 0; float avgLon = 0;
+        int nbStation = 0;
         //System.out.println("name City " + nameCity);
         
-        City city = new City(nameCity);
+        RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/query");
+        QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos> "
+        		+ "SELECT ?City ?name ?stationId ?lat ?lon ?capacity "
+        		+ "WHERE { ?s a ns0:City; "
+	        		+ "ns0:CityPublicTransport _:ns; "
+	        		+ "ns0:CityName ?nameCity ."
+	        		+ " _:ns a ns0:CityBikeStation; "
+	        		+ "ns0:StationId ?stationId; "
+	        		+ "ns0:Stationname ?name; "
+	        		+ "ns0:StationLocalisation [ns1:lat ?lat; ns1:long ?lon;] ;"
+	        		+ "ns0:StationTotalcapacity ?capacity. "
+        		+ "FILTER (str(?nameCity) = \"" + nameCity + "\" ) }");
+        ResultSet rs = qExec.execSelect();
         
-        /*RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/query");
-        QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> PREFIX ns1: <http://geo.> SELECT ?City ?name ?stationId ?lat ?lon ?capacity WHERE { ?s a ns0:City; ns0:CityPublicTransport _:ns; ns0:CityName ?nameCity . _:ns a ns0:CityBikeStation ;ns0:StationId ?stationId; ns0:Stationname ?name; ns0:StationLocalisation [ns1:lat ?lat; ns1:lon ?lon;] ;ns0:StationTotalcapacity ?capacity FILTER (str(?nameCity) = \"Saint_Etienne\" ) }");
-        // System.out.println("conn.query ");
-        ResultSet rs = qExec.execSelect() ;
-        System.out.println("name City"+nameCity + "Requete executer " + rs.getRowNumber());
+        //System.out.println("name City"+nameCity + "Requete executer " + rs.getRowNumber());
         //Recuperation des noms des villes pour afficher la liste
         while(rs.hasNext()) {
             QuerySolution qs = rs.next();
@@ -98,21 +114,48 @@ public class PagesController {
             List<HistoriqueStation> historiqueStationList = new ArrayList<HistoriqueStation>();
             HistoriqueStation historiqueStation = new HistoriqueStation();
             BikeStation bikeStation = new BikeStation(qs.getLiteral("stationId").getString(),qs.getLiteral("capacity").getString(),qs.getLiteral("name").getString(),localisationCity,historiqueStationList);
-            city.getBikesStations().add(bikeStation);
-            /*
-            System.out.println("Nouvelle ligne requete ");
+            city.addBikeStation(bikeStation);
+            
+            /*System.out.println("Nouvelle ligne requete ");
 
             System.out.println(qs.getLiteral("name"));
             System.out.println(qs.getLiteral("stationId"));
             System.out.println(qs.getLiteral("lat"));
-            System.out.println(qs.getLiteral("lon"));
-            Literal objet = qs.getLiteral("o");
-            listCity.add(new City(objet.toString()));
-
+            System.out.println(qs.getLiteral("lon"));*/
         }
-        qExec.close() ;
-        conn.close() ;*/
         
+        qExec.close();
+        
+        qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos> "
+        		+ "SELECT ?n ?lon ?lat { ?v ns0:CityName ?n; ns0:CityPublicTransport _:ns. "
+        		+ "_:ns a ns0:CityBikeStation; ns0:StationLocalisation [ns1:lat ?lat; ns1:long ?lon;]."
+        		+ "FILTER (str(?n) = \"" + nameCity + "\" ) } ");
+	    rs = qExec.execSelect();
+	
+	    // Recuperation des localisations des stations
+	    while(rs.hasNext()) {
+	        QuerySolution qs = rs.next();
+	
+	        String n = qs.getLiteral("n").getString();
+	        float lon = qs.getLiteral("lon").getFloat();
+	        float lat = qs.getLiteral("lat").getFloat();
+	        
+	        // j'ajoute la nouvelle latitude
+	        avgLat += lat;
+	        
+	        // j'ajoute la nouvelle longitude
+	        avgLon += lon;
+	        
+	        // j'augmente le nombre de stations
+	        nbStation += 1;
+	    }
+	    
+	    qExec.close();
+	    conn.close();
+	    
+	    // associe une longitude et une latitude à la ville cityName : moyenne de la latitude et longitude de ses stations
+    	city.setLocalisation(new LocalisationCity(avgLat / nbStation, avgLon / nbStation));
+    
         for (int i = 0; i < 5; i++) {
         	List<HistoriqueStation> h = new ArrayList<>();
             city.addBikeStation(new BikeStation(nameCity + " " + i, "3", nameCity + " BikeStation " + i, new LocalisationCity(0, 0), h));

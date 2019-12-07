@@ -8,65 +8,92 @@
 	<link rel="stylesheet" href="../../../css/bootstrap.min.css" th:href="@{/css/bootstrap.min.css}" />
 	<link rel="stylesheet" href="../../../css/font-awesome.min.css" th:href="@{/css/font-awesome.min.css}" />
 	<link rel="stylesheet" href="../../../css/style.css" th:href="@{/css/style.css}" />
+	<link rel="stylesheet" href="../../../css/my_css.css" th:href="@{/css/my_css.css}" />
 	<link rel="stylesheet" href="https://unpkg.com/leaflet@1.6.0/dist/leaflet.css"
 	   integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
 	   crossorigin=""/>
 </head>
 
-<body class ="left-menu">
-	<div class="menu-wrapper">
-    <header class="vertical-header">
-        <div class="vertical-header-wrapper">
-            <nav class="nav-menu">
-                <div class="logo">
-
-                </div>
-                <div class="margin-block"></div>
-                <form action ="/bikes" method="POST">
-                    <table  class="primary-menu">
-	                    <tr th:each="city : ${Cities}" class="child-menu">
-                          <td align="center" th:text="1"></td>
-                          <td> <input type="submit" name="city"  th:value="${city.name}"/></td>
-						</tr>
-                    </table>
-                </form>
-            </nav>
-
-        </div>
-
-    </header>
-
+<body>
+	<script type="text/javascript" src="../../../js/city_manager.js" th:href="@{/js/city_manager.js}"> </script>
+	
+    <div id="my-left-panel">
+	    <form action ="/bikes" method="POST" id="cities">
+	       <table>
+		        <tr th:each="city : ${Cities}">
+		             <td>
+		             	<label th:if="${CityChoose == null || city.name != CityChoose.name}"  for="city" class=""> 
+		             		<input type="submit" id="city" name="city" onclick="changeStyleCity(this);" th:value="${city.name}"/>
+		             	</label>
+		             	<div th:unless="${CityChoose == null || city.name != CityChoose.name}" id="city" th:text="${city.name}" onclick="changeStyleCity(this); window.location.replace('http://localhost:8080/');" class="come-back"></div>
+		             </td>
+				</tr>
+	       </table>
+	    </form>
 	</div>
 	
-	<div>
-	
-    <div th:if="${CityChoose}">  
-        <!--table>
-            <tr>
-                <td>Nom Station</td>
-                <td>Capacité Total</td>
-                <td>Localisation lat</td>
-                <td>Localisation long</td>
-            </tr>
-            
-            <tr th:each="bikeStation : ${CityChoose.bikesStations}" >
-                <td th:text="${bikeStation.name}"></td>
-                <td th:text="${bikeStation.capacity}"></td>
-                <td th:text="${bikeStation.localisation.lat}"></td>
-                <td th:text="${bikeStation.localisation.lg}"></td>
-            </tr>
-        </table-->
-        
-    </div>
-    
-    <div id="map" style="width:700px; height:700px; margin:auto;"></div>
+	<div id="my_global_container">
+		<div id="stations_container">
+			<div id="costumization">
+				<div id="transport1_container">
+					<div id="select_bike" onclick=""> 
+						<img alt="Bike" src="../../../css/images/icon-bike.png" th:href="@{/css/images/icon-bike.png}"> 
+					</div>
+					<div id="select_bus" onclick=""> 
+						<img alt="Bus" src="../../../css/images/icon-bus.png" th:href="@{/css/images/icon-bus.png}">
+					</div>
+				</div>
+				
+				<div id="search">
+					<input type="text" placeholder="Entrez le nom de la station" onclick=""/>
+				</div>
+				
+				<div id="transport2_container">
+					<div id="select_train" onclick=""> 
+						<img alt="Train" src="../../../css/images/icon-train.png" th:href="@{/css/images/icon-train.png}">
+					</div>
+					<div id="select_car" onclick=""> 
+						<img alt="Car" src="../../../css/images/icon-car.png" th:href="@{/css/images/icon-car.png}">
+					</div>
+				</div>
+			</div>
+			
+		    <div id="map"></div>
+			
+			<script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"
+			  integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew=="
+			  crossorigin=""></script>
+			
+			<script type="text/javascript" src="../../../js/map_manager.js" th:href="@{/js/map_manager.js}"> </script>
+			
+		    <div th:if="${CityChoose}">
+		    	<div th:if="${MapChoose}">
+		        	<script type="text/javascript" th:inline="javascript">
+						changeCity(/*[[${CityChoose}]]*/);
+					</script>
+		        </div>
+			    
+			    <div th:if="${TableChoose}">  
+			        <!--table>
+			            <tr>
+			                <td>Nom Station</td>
+			                <td>Capacité Total</td>
+			                <td>Localisation lat</td>
+			                <td>Localisation long</td>
+			            </tr>
+			            
+			            <tr th:each="bikeStation : ${CityChoose.bikesStations}" >
+			                <td th:text="${bikeStation.name}"></td>
+			                <td th:text="${bikeStation.capacity}"></td>
+			                <td th:text="${bikeStation.localisation.lat}"></td>
+			                <td th:text="${bikeStation.localisation.lg}"></td>
+			            </tr>
+			        </table-->       
+		        </div>
+		    </div>
+	    </div>
 
 	</div>
-	
-	 <script src="https://unpkg.com/leaflet@1.6.0/dist/leaflet.js"
-	   integrity="sha512-gZwIG9x3wUXg2hdXF6+rVkLF/0Vi9U8D2Ntg4Ga5I5BZpVkVxlJWbSQtXPSiUTtC0TjtGOmxa1AJPuV0CPthew=="
-	   crossorigin=""></script>
-	<script type="text/javascript" src="../../../js/map_manager.js" th:href="@{/js/map_manager.js}"> </script>
 </body>
 
 </html>

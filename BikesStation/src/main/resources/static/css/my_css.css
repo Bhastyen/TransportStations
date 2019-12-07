@@ -1,0 +1,161 @@
+@charset "ISO-8859-1";
+
+
+body{
+	display: flex;
+	flex-direction: row;
+}
+
+#my-left-panel{
+	background: url(images/menubg.jpg);
+	width: 15vw;
+	height: 100vh;
+	padding: 15px;
+	
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+#cities{
+	margin-top: 100px;
+}
+
+tr{
+	height: 40px;
+	margin: 20px 0px;
+	font-size: 25px;
+}
+
+td{
+	padding: 5px;
+}
+
+#cities label {
+	width: 15vw;
+	text-align: center;
+}
+
+#cities label:hover {
+	cursor: pointer;
+	background-color: #fff39f;
+}
+
+#cities label.active {
+	background-color: #fff39f;
+}
+
+.come-back{
+	background-color: #fff39f;
+	width: 15vw;
+	height: 40px;
+	font-size: 25px;
+	text-align: center;
+}
+
+.come-back:hover{
+	cursor: pointer;
+}
+
+input[type="submit"], input[type="submit"]:focus{
+    outline: 0;
+    box-shadow:none;
+	border: none;
+	background-color: transparent;
+}
+
+#my_global_container{
+    width: auto;
+    height: auto;
+}
+
+#stations_container{
+    /* width: 100%; */
+    height: auto;
+	
+}
+
+#map{
+    width: 85vw;
+    height: 92vh;
+}
+
+#costumization{
+	display: flex;
+	flex-direction: row;
+	
+	background: url(images/menubg.jpg);
+	
+    width: 85vw;
+    height: 8vh;
+}
+
+#transport1_container{
+	width: 33%;
+	height: 100%;
+	
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+#transport2_container{
+	width: 33%;
+	height: 100%;
+	
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+#search{
+	width: 33%;
+	height: 100%;
+	
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+#select_bike,#select_bus,#select_train,#select_car  {
+    margin: 0px 20px;
+    border-radius: 50%;
+    background-color: white;
+}
+
+#select_bike {
+    background-color: #e26262;
+}
+
+#select_bus {
+    background-color: #94ebff;
+}
+
+#select_train {
+    background-color: #99ec8a;
+}
+
+#select_car {
+    background-color: #fffc93;
+}
+
+#select_bike:hover,#select_bus:hover,#select_train:hover,#select_car:hover {
+	cursor: pointer;
+	background-color: transparent;
+}
+
+#select_bike img,#select_bus img,#select_train img,#select_car img {
+	width: 45px;
+	height: 45px;
+	
+	padding: 5px;
+}
+
+#select_bike img,#select_car img {
+	padding: 0px;
+}
+
