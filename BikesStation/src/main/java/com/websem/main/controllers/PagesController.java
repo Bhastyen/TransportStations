@@ -42,25 +42,38 @@ import com.websem.main.models.LocalisationCity;
 @Controller
 public class PagesController {
 
+
+	
 	@GetMapping("/")
-	public String home(ModelMap modelMap) {
-		modelMap.put("Cities", listCity());
+	public String home(@RequestParam(required = false) String city, ModelMap modelMap) {
+		List<City> cities = listCity();
+		modelMap.put("Cities", cities);
 
-		return "pages/index";
+    	// donne la derniere localisation visitee
+    	if (city != null && !city.isEmpty()) {
+    		modelMap.put("lastLocCity", getCityWithName(city, cities).getLocalisation());
+    	}
+    	
+    	return "pages/index";
 	}
+	
 
+    @RequestMapping(value = "/", method = RequestMethod.POST)
+    public String promptStationCity(@RequestParam("city") String name, @RequestParam(required=false) String lastCity, ModelMap modelMap) throws JSONException, IOException{
+		List<City> cities = listCity();
+    	modelMap.put("Cities", listCity());
+    	modelMap.put("CityChoose", cityStation(name));
 
-	@RequestMapping(value = "/bikes", method = RequestMethod.POST)
-	public String promptStationCity(@RequestParam("city") String name, ModelMap modelMap) throws JSONException, IOException{
-		modelMap.put("Cities", listCity());
-		modelMap.put("CityChoose", cityStation(name));
-		modelMap.put("MapChoose", true);
+    	// donne la derniere localisation visitee
+    	if (lastCity != null && !lastCity.isEmpty()) {
+    		modelMap.put("lastLocCity", getCityWithName(lastCity, cities).getLocalisation());
+    	}
+    	
+        //TODO update dynamic with city name
+    	UpdateCity(name);
 
-		//TODO update dynamic with city name
-		UpdateCity(name);
-
-		return "pages/index";
-	}
+        return "pages/index";
+    }
 
 	public void UpdateCity(String name) throws JSONException, IOException {//TODO modifier BDD pour avoir lien vers les donnees dynamique
 		RDFConnection conn;
@@ -82,8 +95,6 @@ public class PagesController {
 		conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/query");
 		//test
 
-		System.out.println("name"+name);
-		System.out.println("row number  jj "+rs.getRowNumber());
 		//Recuperation adresse des donnees dynamique
 		qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> "
 				+ "SELECT DISTINCT ?adresseDynamique {"
@@ -99,8 +110,8 @@ public class PagesController {
 		while(rs.hasNext()) {
 			QuerySolution qs = rs.next();
 
-			Literal objet = qs.getLiteral("adresseDynamique");
-			adresseDynamique = objet.getString();
+			String adresse = qs.getResource("adresseDynamique").getURI();
+			adresseDynamique = adresse;
 
 		}
 
@@ -194,42 +205,63 @@ public class PagesController {
 
 	}
 
-	@GetMapping("/newCity")
-	public String newCity(ModelMap model) {
-		// Recuperer le Json
-		String jsonPath = "https://saint-etienne-gbfs.klervi.net/gbfs/en/station_information.json";
+	 @GetMapping("/newCity")
+	    public String newCity(ModelMap model) {
+	        // Envoyer vers la page newCity pour que l'utilisateur ajoute sa ville
+	        return "pages/newCity";
+	    }
+	    
+	    
+	    @RequestMapping(value="/newCity", method = RequestMethod.POST)
+	    public String newCity(@RequestParam(required = true) String staticLink, ModelMap model) {
+	        // Recuperer le Json
+	        String jsonPath = "https://saint-etienne-gbfs.klervi.net/gbfs/en/station_information.json";
 
-		// Parser le Json pour le transformer en RDF
+	        // Parser le Json pour le transformer en RDF
 
-		// Put le RDF obtenu dans fuseki
-		// TODO https://www.w3.org/TR/2013/REC-sparql11-update-20130321/#updateLanguage
-		model.put("message", "You are in new page !!");
+	        // Put le RDF obtenu dans fuseki
+	       // TODO https://www.w3.org/TR/2013/REC-sparql11-update-20130321/#updateLanguage
+	        model.put("message", "You are in new page !!");
 
-		// Appeler la page test pour afficher les donner entree
-		return "pages/next";
-	}
+	        // Appeler la page test pour afficher les donner entree
+	        return "redirect:" + "/";
+	    }
 
 
-	private static List<City> listCity(){
-		List<City> listCity = new ArrayList<City>();
+	    private static List<City> listCity(){
+	        List<City> listCity = new ArrayList<City>();
+	        City city;
+	        
+	        RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/query");
+	        QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> "
+	                                        + "SELECT DISTINCT ?link ?iri ?name {"
+	                                            + " ?iri ns0:CityName ?name; "
+	                                                 + " ns0:LienDonneesDynamique ?link"
+	                                        + "}");
+	        ResultSet rs = qExec.execSelect();
+	        
+	        // Recuperation des noms des villes pour afficher la liste
+	        while(rs.hasNext()) {
+	            QuerySolution qs = rs.next();
+	            Literal name = qs.getLiteral("name");
+	            
+	            city = new City(name.toString(), new LocalisationCity(0,  0));
+	           // city.setIRI(qs.getResource("iri").getURI());
+	            //city.setDynamicLink(qs.getResource("link").getURI());
+	            listCity.add(city);
+	        }
+	        
+	        qExec.close();
+	        conn.close();
 
-		RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/query");
-		QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> PREFIX ns1: <http://geo.> SELECT DISTINCT ?n { ?s ns0:CityName ?n; }") ;
-		ResultSet rs = qExec.execSelect();
-
-		// Recuperation des noms des villes pour afficher la liste
-		while(rs.hasNext()) {
-			QuerySolution qs = rs.next();
-
-			Literal objet = qs.getLiteral("n");
-			listCity.add(new City(objet.toString(), new LocalisationCity(0,  0)));
-		}
-
-		qExec.close();
-		conn.close();
-
-		return  listCity;
-	}
+	        // recupere la position de chaque ville
+	        for (int i = 0; i < listCity.size(); i++) {
+	            city = listCity.get(i);
+	            city.setLocalisation(getLocalisation(city.getName()));
+	        }
+	        
+	        return  listCity;
+	    }
 
 
 	private static City cityStation(String nameCity){
