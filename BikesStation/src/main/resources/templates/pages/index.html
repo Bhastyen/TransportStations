@@ -1,5 +1,13 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+    prefix="exvoc: http://www.ex-city.com/
+			ex: http://example.org/
+			rdfs: http://www.w3.org/2000/01/rdf-schema#
+			ns0: http://semanticweb.org/ontologies/City#
+			ite: http://w3id.org/sparql-generate/iter/
+			ns1: http://geo.
+			crm: http://www.cidoc-crm.org/cidoc-crm/"
+    lang="fr">
 
 <head>
 	<meta charset="ISO-8859-1"/>
@@ -19,15 +27,16 @@
 	
     <div id="my-left-panel">
        <table id="cities">
-        <tr th:each="city : ${Cities}">
-            <td>
-			 <form action ="/" th:method="${CityChoose == null || city.name != CityChoose.name? 'POST' : 'GET'}">
-			 	 <input type="hidden" id="lastCity" name="lastCity" onclick="" th:value="${CityChoose != null? CityChoose.name : ''}"/>
-	           	 <label for="city" th:class="${CityChoose == null || city.name != CityChoose.name? '' : 'active'}">
-	           		 <input type="submit" id="city" name="city" onclick="" th:value="${city.name}"/>
-	           	 </label>
-			 </form>
-            </td>
+        <tr th:each="city : ${Cities}" th:about="${city.IRI}" typeof="ns0:City">
+             <td property="ns0:CityName" th:content="${city.name}">
+				 <form action ="/" th:method="${CityChoose == null || city.name != CityChoose.name? 'POST' : 'GET'}">
+				 	 <input type="hidden" id="lastCity" name="lastCity" onclick="" th:value="${CityChoose != null? CityChoose.name : ''}"/>
+		           	 <label for="city" th:class="${CityChoose == null || city.name != CityChoose.name? '' : 'active'}">
+		           		 <input type="submit" id="city" name="city" onclick="" th:value="${city.name}"/>
+		           	 </label>
+				 </form>
+             </td>
+             <td style="display: none;" rel="ns0:LienDonneesDynamique" th:src="${city.dynamicLink}"></td>
 		</tr>
 		<tr>
             <td>
@@ -43,24 +52,24 @@
 		<div id="stations_container">
 			<div id="costumization">
 				<div id="transport1_container">
-					<div id="select_bike" onclick="">
+					<div id="select_bike" th:onclick="addRemoveTypeTransport(this, 'Bike'); refreshStationFilter(/*[[${CityChoose}]]*/);">
 						<img alt="Bike" src="../../../css/images/icon-bike.png" th:href="@{/css/images/icon-bike.png}">
 					</div>
-					<div id="select_bus" onclick="">
+					<div id="select_bus" th:onclick="addRemoveTypeTransport(this, 'Bus'); refreshStationFilter(/*[[${CityChoose}]]*/);">
 						<img alt="Bus" src="../../../css/images/icon-bus.png" th:href="@{/css/images/icon-bus.png}">
 					</div>
 				</div>
 				
 				<div id="search">
-					<input type="text" placeholder="Entrez le nom de la station" onclick=""/>
+					<input type="text" placeholder="Entrez le nom de la station" th:oninput="stationFilter(/*[[${CityChoose}]]*/, this);"/>
 				</div>
 				
 				<div id="transport2_container">
-					<div id="select_train" onclick="">
-						<img alt="Train" src="../../../css/images/icon-train.png" th:href="@{/css/images/icon-train.png}">
+					<div id="select_subway" th:onclick="addRemoveTypeTransport(this, 'Subway'); refreshStationFilter(/*[[${CityChoose}]]*/);">
+						<img alt="Subway" src="../../../css/images/icon-train.png" th:href="@{/css/images/icon-train.png}">
 					</div>
-					<div id="select_car" onclick="">
-						<img alt="Car" src="../../../css/images/icon-car.png" th:href="@{/css/images/icon-car.png}">
+					<div id="select_parking" th:onclick="addRemoveTypeTransport(this, 'Parking'); refreshStationFilter(/*[[${CityChoose}]]*/);">
+						<img alt="Parking" src="../../../css/images/icon-car.png" th:href="@{/css/images/icon-car.png}">
 					</div>
 				</div>
 			</div>
@@ -92,23 +101,17 @@
 				changeCity(/*[[${lastLocCity}]]*/, /*[[${CityChoose}]]*/);
 			</script>
 			
-		    <div th:if="${TableChoose}">  
-		        <!--table>
-		            <tr>
-		                <td>Nom Station</td>
-		                <td>Capacité Total</td>
-		                <td>Localisation lat</td>
-		                <td>Localisation long</td>
-		            </tr>
-		            
-		            <tr th:each="bikeStation : ${CityChoose.bikesStations}" >
-		                <td th:text="${bikeStation.name}"></td>
-		                <td th:text="${bikeStation.capacity}"></td>
-		                <td th:text="${bikeStation.localisation.lat}"></td>
-		                <td th:text="${bikeStation.localisation.lg}"></td>
-		            </tr>
-		        </table-->
-	        </div>
+	        <table th:about="${CityChoose.IRI}" th:if="${CityChoose}" style="display:none;">
+	            <tr rel="ns0:CityPublicTransport" typeof="ns0:CityBikeStation" th:each="bikeStation : ${CityChoose.bikesStations}">
+	                <td property="ns0:StationId" datatype="rdf:integer" th:content="${bikeStation.idStation}"></td>
+	                <td property="ns0:Stationname" th:content="${bikeStation.name}"></td>
+	                <td property="ns0:StationTotalcapacity" datatype="rdf:integer" th:content="${bikeStation.capacity}"></td>
+	                <td rel="ns0:StationLocalisation">
+	                	<span property="ns1:lat" datatype="rdf:float" th:content="${bikeStation.localisation.lat}"></span>
+	                	<span property="ns1:lon" datatype="rdf:float" th:content="${bikeStation.localisation.lg}"></span>
+	                </td>
+	            </tr>
+	        </table>
 	    </div>
 
 	</div>

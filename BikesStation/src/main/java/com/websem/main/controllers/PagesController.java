@@ -149,17 +149,25 @@ public class PagesController {
 
     private static List<City> listCity(){
         List<City> listCity = new ArrayList<City>();
+        City city;
         
         RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/query");
-        QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> PREFIX ns1: <http://geo.> SELECT DISTINCT ?n { ?s ns0:CityName ?n; }") ;
+        QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> "
+        								+ "SELECT DISTINCT ?link ?iri ?name {"
+        									+ " ?iri ns0:CityName ?name; "
+        										 + " ns0:LienDonneesDynamique ?link"
+        								+ "}");
         ResultSet rs = qExec.execSelect();
         
         // Recuperation des noms des villes pour afficher la liste
         while(rs.hasNext()) {
             QuerySolution qs = rs.next();
-
-            Literal objet = qs.getLiteral("n");
-            listCity.add(new City(objet.toString(), new LocalisationCity(0,  0)));
+            Literal name = qs.getLiteral("name");
+            
+            city = new City(name.toString(), new LocalisationCity(0,  0));
+            city.setIRI(qs.getResource("iri").getURI());
+            city.setDynamicLink(qs.getResource("link").getURI());
+            listCity.add(city);
         }
         
         qExec.close();
@@ -167,7 +175,8 @@ public class PagesController {
 
 	    // recupere la position de chaque ville
         for (int i = 0; i < listCity.size(); i++) {
-        	listCity.get(i).setLocalisation(getLocalisation(listCity.get(i).getName()));
+        	city = listCity.get(i);
+        	city.setLocalisation(getLocalisation(city.getName()));
         }
         
         return  listCity;
@@ -181,15 +190,15 @@ public class PagesController {
         //System.out.println("name City " + nameCity);
         
         RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/query");
-        QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> PREFIX ns1: <http://geo.> "
-        		+ "SELECT ?City ?name ?stationId ?lat ?lon ?capacity "
+        QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos> "
+        		+ "SELECT ?City ?name ?s ?stationId ?lat ?lon ?capacity "
         		+ "WHERE { ?s a ns0:City; "
 	        		+ "ns0:CityPublicTransport _:ns; "
 	        		+ "ns0:CityName ?nameCity ."
 	        		+ " _:ns a ns0:CityBikeStation; "
 	        		+ "ns0:StationId ?stationId; "
 	        		+ "ns0:Stationname ?name; "
-	        		+ "ns0:StationLocalisation [ns1:lat ?lat; ns1:lon ?lon;] ;"
+	        		+ "ns0:StationLocalisation [ns1:lat ?lat; ns1:long ?lon;] ;"
 	        		+ "ns0:StationTotalcapacity ?capacity. "
         		+ "FILTER (str(?nameCity) = \"" + nameCity + "\" ) }");
         ResultSet rs = qExec.execSelect();
@@ -197,12 +206,18 @@ public class PagesController {
         //Recuperation des noms des villes pour afficher la liste
         while(rs.hasNext()) {
             QuerySolution qs = rs.next();
+            
             LocalisationCity localisationCity = new LocalisationCity(qs.getLiteral("lat").getFloat(),qs.getLiteral("lon").getFloat());
             List<HistoriqueStation> historiqueStationList = new ArrayList<HistoriqueStation>();
             HistoriqueStation historiqueStation = new HistoriqueStation();
-            BikeStation bikeStation = new BikeStation(qs.getLiteral("stationId").getString(),qs.getLiteral("capacity").getString(),qs.getLiteral("name").getString(),localisationCity,historiqueStationList);
+            BikeStation bikeStation = new BikeStation(qs.getLiteral("stationId").getString(), 
+            		                                  qs.getLiteral("capacity").getString(),
+            		                                  qs.getLiteral("name").getString(),
+            		                                  localisationCity,
+            		                                  historiqueStationList);
             city.addBikeStation(bikeStation);
-            
+    	    city.setIRI(qs.getResource("s").getURI());
+    	    
             /*System.out.println("Nouvelle ligne requete ");
 
             System.out.println(qs.getLiteral("name"));
@@ -226,10 +241,10 @@ public class PagesController {
         int nbStation = 0;
         
         RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/query");
-        QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> PREFIX ns1: <http://geo.> "
+        QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos> "
         		+ "SELECT ?n ?lon ?lat { ?v ns0:CityName ?n; ns0:CityPublicTransport _:ns. "
-        		+ "_:ns a ns0:CityBikeStation; ns0:StationLocalisation [ns1:lat ?lat; ns1:lon ?lon;]."
-        		+ "FILTER (str(?n) = \"" + name + "\" ) } ");
+        		+ "_:ns a ns0:CityBikeStation; ns0:StationLocalisation [ns1:lat ?lat; ns1:long ?lon;]."
+        		+ "FILTER (str(?n) = \"" + name + "\" )} ");
         ResultSet rs = qExec.execSelect();
 	
 	    // Recuperation des localisations des stations

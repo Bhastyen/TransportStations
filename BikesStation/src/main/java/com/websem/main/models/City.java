@@ -5,7 +5,9 @@ import java.util.List;
 
 
 public class City {
+	private String IRI;
 	private String name;
+	private String dynamicLink;
 	private LocalisationCity localisation;
 	private List<BikeStation> bikesStations;
 
@@ -45,5 +47,21 @@ public class City {
 
 	public void setLocalisation(LocalisationCity localisation) {
 		this.localisation = localisation;
+	}
+
+	public String getIRI() {
+		return IRI;
+	}
+
+	public void setIRI(String iRI) {
+		IRI = iRI;
+	}
+
+	public String getDynamicLink() {
+		return dynamicLink;
+	}
+
+	public void setDynamicLink(String dynamicLink) {
+		this.dynamicLink = dynamicLink;
 	}
 }

@@ -122,7 +122,7 @@ input[type="submit"], input[type="submit"]:focus{
     justify-content: center;
 }
 
-#select_bike,#select_bus,#select_train,#select_car  {
+#select_bike,#select_bus,#select_subway,#select_parking  {
     margin: 0px 20px;
     border-radius: 50%;
     background-color: white;
@@ -136,27 +136,27 @@ input[type="submit"], input[type="submit"]:focus{
     background-color: #94ebff;
 }
 
-#select_train {
+#select_subway {
     background-color: #99ec8a;
 }
 
-#select_car {
+#select_parking {
     background-color: #fffc93;
 }
 
-#select_bike:hover,#select_bus:hover,#select_train:hover,#select_car:hover {
+#select_bike:hover,#select_bus:hover,#select_subway:hover,#select_parking:hover {
 	cursor: pointer;
 	background-color: transparent;
 }
 
-#select_bike img,#select_bus img,#select_train img,#select_car img {
+#select_bike img,#select_bus img,#select_subway img,#select_parking img {
 	width: 45px;
 	height: 45px;
 	
 	padding: 5px;
 }
 
-#select_bike img,#select_car img {
+#select_bike img,#select_parking img {
 	padding: 0px;
 }
 

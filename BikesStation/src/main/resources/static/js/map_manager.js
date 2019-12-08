@@ -1,12 +1,20 @@
-// On initialise la latitude et la longitude de Paris (centre de la carte)
+// On initialise les variables comme la position par defaut (Paris), la carte, 
+// le temps d'animation et les types de transport choisi
 var time = 400;
 var lat = 45.43992;
 var lon = 4.3896303;
+var types = ['Bike'];
+var search = '';
 var macarte = null;
 
 
 function initMap(cities, latc, lonc, zoom) {
-    
+	
+	if (macarte != null){
+		macarte.off();
+		macarte.remove();
+	}
+	
     // Créer l'objet "macarte" et l'insèrer dans l'élément HTML qui a l'ID "map"
     macarte = L.map('map').setView([latc, lonc], zoom);
     
@@ -35,8 +43,6 @@ function reinitMap(lastLoc){
 	lonc = lon;
 	
 	// initialiser la latitude et la longitude
-	console.log(lastLoc);
-	
 	if (lastLoc != null){
 		latc = lastLoc.lat;
 		lonc = lastLoc.lg;
@@ -159,6 +165,89 @@ function createPopup(city){
 	    	marker.bindPopup(st.name);
 		}
 	}
+}
+
+function stationFilter(city, field){
+	
+	if(city != null){
+		
+		// change la valeur de la recherche
+		search = field.value.toLowerCase();
+		
+		// reinitialise la carte
+		if (macarte != null){
+			macarte.off();
+			macarte.remove();
+		}
+	
+	    // Creer l'objet "macarte" et l'inserer dans l'element HTML qui a l'ID "map"
+	    macarte = L.map('map').setView([city.localisation.lat, city.localisation.lg], 12);
+		
+	    // ajout des marqueurs pertinant
+		for (var i = 0; i < city.bikesStations.length; i++){
+			var st = city.bikesStations[i];
+			var name = st.name.toLowerCase();
+			if ((st.localisation.lat != 0 || st.localisation.lg != 0) && name.startsWith(search)){
+		    	var marker = L.marker([st.localisation.lat, st.localisation.lg]).addTo(macarte);
+		    	marker.bindPopup(st.name);
+			}
+		}
+	    
+	    // Leaflet ne récupère pas les cartes (tiles) sur un serveur par défaut. Nous devons lui préciser où nous souhaitons les récupérer. Ici, openstreetmap.fr
+	    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+		    // Il est toujours bien de laisser le lien vers la source des données
+		    attribution: 'données © <a href="//osm.org/copyright">OpenStreetMap</a>/ODbL - rendu <a href="//openstreetmap.fr">OSM France</a>',
+		        minZoom: 1,
+		        maxZoom: 20
+		    }).addTo(macarte);
+	}
+}
+
+function refreshStationFilter(city){
+	
+	if(city != null){
+		// reinitialise la carte
+		if (macarte != null){
+			macarte.off();
+			macarte.remove();
+		}
+	
+	    // Creer l'objet "macarte" et l'inserer dans l'element HTML qui a l'ID "map"
+	    macarte = L.map('map').setView([city.localisation.lat, city.localisation.lg], 12);
+		
+	    // ajout des marqueurs pertinant
+		for (var i = 0; i < city.bikesStations.length; i++){
+			var st = city.bikesStations[i];
+			var name = st.name.toLowerCase();
+			if ((st.localisation.lat != 0 || st.localisation.lg != 0) && name.startsWith(search)){
+		    	var marker = L.marker([st.localisation.lat, st.localisation.lg]).addTo(macarte);
+		    	marker.bindPopup(st.name);
+			}
+		}
+	    
+	    // Leaflet ne récupère pas les cartes (tiles) sur un serveur par défaut. Nous devons lui préciser où nous souhaitons les récupérer. Ici, openstreetmap.fr
+	    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+		    // Il est toujours bien de laisser le lien vers la source des données
+		    attribution: 'données © <a href="//osm.org/copyright">OpenStreetMap</a>/ODbL - rendu <a href="//openstreetmap.fr">OSM France</a>',
+		        minZoom: 1,
+		        maxZoom: 20
+		    }).addTo(macarte);
+	}
+}
+
+function addRemoveTypeTransport(element, name){
+	
+	// ajoute ou supprime le type de transport
+	if (types.includes(name))
+		for( var i = 0; i < types.length; i++){
+		   if ( types[i] === name) {
+			   types.splice(i, 1);
+		   }
+		}
+	else types.push(name);
+	
+	// change l'image de l'element
+	
 }
 
 //window.onload = function(){
