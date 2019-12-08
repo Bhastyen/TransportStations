@@ -42,8 +42,6 @@ import com.websem.main.models.LocalisationCity;
 @Controller
 public class PagesController {
 
-
-	
 	@GetMapping("/")
 	public String home(@RequestParam(required = false) String city, ModelMap modelMap) {
 		List<City> cities = listCity();
@@ -103,8 +101,8 @@ public class PagesController {
 		rs = qExec.execSelect();
 
 		System.out.println(qExec.getQuery().toString());
-		System.out.println("name"+name);
-		System.out.println("row number"+rs.getRowNumber());
+		System.out.println("name "+name);
+		System.out.println("row number " + rs.getRowNumber());
 		// Recuperation des noms des villes pour afficher la liste
 		while(rs.hasNext()) {
 			QuerySolution qs = rs.next();
@@ -297,7 +295,7 @@ public class PagesController {
             city.addBikeStation(bikeStation);
     	    city.setIRI(qs.getResource("s").getURI());
     	    
-            System.out.println(qs.getLiteral("name"));
+            /*System.out.println(qs.getLiteral("name"));
             System.out.println(qs.getLiteral("stationId"));
             System.out.println(qs.getLiteral("lat"));
             System.out.println(qs.getLiteral("lon"));*/
