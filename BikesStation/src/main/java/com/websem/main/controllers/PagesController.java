@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.*; 
 
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QuerySolution;
@@ -12,6 +13,8 @@ import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFactory;
+import org.apache.jena.system.Txn;
+import org.apache.jena.update.Update;
 import org.apache.jena.update.UpdateAction;
 import org.apache.jena.update.UpdateFactory;
 import org.apache.jena.update.UpdateRequest;
@@ -61,6 +64,16 @@ public class PagesController {
 
     public void UpdateCity(String name) throws JSONException, IOException {//TODO modifier BDD pour avoir lien vers les donnees dynamique
     	 RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/update");
+    	
+    	 
+    	 List<String> bikesAvailable = new ArrayList<String>(Arrays.asList("num_bikes_available")) ;
+    	 List<String> docksAvailable = new ArrayList<String>(Arrays.asList("num_docks_available")) ;
+    	 List<String> stationParentNode =new ArrayList<String>(Arrays.asList("stations")) ;
+    	 
+    	 List<Integer> indiceArrayList = new ArrayList<>(); //List utiliser apres la recherche pour determiner quels termes sont dans le json pour la recherche en update
+    	 int i = 0;
+    	 int lastUpdate;
+    	
     	 
     	 //TODO
     	 //Recupere JSON sur site Dynamique
@@ -68,9 +81,71 @@ public class PagesController {
     	 JSONObject json = JsonReader.readJsonFromUrl("https://saint-etienne-gbfs.klervi.net/gbfs/en/station_status.json");
     	 System.out.println(json.toString());
     	 
+    	 //Verification de la date du dernier update pour voir quand cela a ete changer
+    	 
     	 //Creation Arbre pour analyser le Json
     	 ObjectMapper mapper = new ObjectMapper();
     	 JsonNode listStations = mapper.readTree(json.toString());
+    	 System.out.println("LAST "); 
+    	 lastUpdate = listStations.findValue("last_updated").intValue();
+    	 
+    	 System.out.println("LAST UPDATE" + lastUpdate);
+    	 //Recherche des termes du Json pour pouvoir faire le update
+    	 researchTermes(bikesAvailable,indiceArrayList,listStations);//indice trouver stocker dans indiceArrayList 0
+    	 researchTermes(docksAvailable,indiceArrayList,listStations);//indice trouver stocker dans indiceArrayList 1
+    	 researchTermes(stationParentNode,indiceArrayList,listStations);//indice trouver stocker dans indiceArrayList 2
+    	
+    	 listStations = listStations.findValue(stationParentNode.get(indiceArrayList.get(2)));
+    	 for (JsonNode jsonNode: listStations) {
+    	
+    		 
+    		 String idStation = jsonNode.findValue("station_id").asText();
+    		 
+    		System.out.println(idStation);
+    		System.out.println(name);
+    		
+    		conn.update("PREFIX ns0: <http://semanticweb.org/ontologies/City#> " + 
+    				"PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos>" + 
+    				"\r\n" + 
+    				"INSERT { " + 
+    				"  		  " + 
+    				"    			  ?hs ns0:StationState[" + 
+    				"  				  ns0:BikeAvailable "+jsonNode.findValue(bikesAvailable.get(indiceArrayList.get(0))) +"; "+ 
+    				"                  ns0:SlotAvailable "+jsonNode.findValue(docksAvailable.get(indiceArrayList.get(1)))+";"+
+    				"                  ns0:Date "+ lastUpdate+  
+    				"            " + 
+    				"					]." + 
+    				"}WHERE{" + 
+    				" 			 _:n ns0:CityName ?name ;" + 
+    				"             ns0:CityPublicTransport ?n." + 
+    				"              ?n a ns0:CityBikeStation; " + 
+    				"                  ns0:StationId \"19\" ;" + 
+    				"                  ns0:StationHistorique ?hs.          " + 
+    				"FILTER (str(?name) = \""+name+"\" )"
+    						+ "}");
+    		
+    		/*conn.update("PREFIX ns0: <http://semanticweb.org/ontologies/City#> " + 
+    		 		"PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos>" +  
+    		 		"INSERT {" + 
+    		 		"  		  " + 
+    		 		"    			  ?hs ns0:StationState[" + 
+    		 		"  				  ns0:BikeAvailable "+jsonNode.findValue(bikesAvailable.get(indiceArrayList.get(0))) +";" + 
+    		 		"                  ns0:SlotAvailable "+jsonNode.findValue(docksAvailable.get(indiceArrayList.get(1)))+";" + 
+    		 		"                  ns0:Date " + lastUpdate + 
+    		 		"            " + 
+    		 		"					]." + 
+    		 		"}WHERE{" + 
+    		 		" 			_:n ns0:CityName \"Saint Etienne\";" + 
+    		 		"             ns0:CityPublicTransport ?n." + 
+    		 		"              ?n a ns0:CityBikeStation; " + 
+    		 		"                  ns0:StationId ?id ;" + 
+    		 		"                  ns0:StationHistorique ?hs." + 
+    		 		 " FILTER (str(?id) = \""+idStation+"\" )}");*/
+    		
+			
+		}/*" FILTER (str(?nom) = \""+name+"\" )"
+    		 				+*/
+    	
     	// listStations.
     	 
     	 //TODO ?? Selon les donnees (france , amerique) les noms differe , parser avec jsonObject
@@ -111,6 +186,19 @@ public class PagesController {
     	 
     	// conn.update(request);
     	 conn.close();
+    }
+    
+    private static void researchTermes(List<String> list,List<Integer>indices,JsonNode treeJson) {
+    	 int i=0;
+    	 for (String terme : list) {
+     		
+    		 if(treeJson.findValue(terme)!=null) {
+    			 indices.add(i);
+    			 break;
+    		 }
+    		 i++;
+		}
+    	 
     }
 	
     @GetMapping("/newCity")
