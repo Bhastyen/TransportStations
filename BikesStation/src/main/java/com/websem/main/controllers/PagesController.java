@@ -181,7 +181,7 @@ public class PagesController {
         //System.out.println("name City " + nameCity);
         
         RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/query");
-        QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos> "
+        QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> PREFIX ns1: <http://geo.> "
         		+ "SELECT ?City ?name ?stationId ?lat ?lon ?capacity "
         		+ "WHERE { ?s a ns0:City; "
 	        		+ "ns0:CityPublicTransport _:ns; "
@@ -189,7 +189,7 @@ public class PagesController {
 	        		+ " _:ns a ns0:CityBikeStation; "
 	        		+ "ns0:StationId ?stationId; "
 	        		+ "ns0:Stationname ?name; "
-	        		+ "ns0:StationLocalisation [ns1:lat ?lat; ns1:long ?lon;] ;"
+	        		+ "ns0:StationLocalisation [ns1:lat ?lat; ns1:lon ?lon;] ;"
 	        		+ "ns0:StationTotalcapacity ?capacity. "
         		+ "FILTER (str(?nameCity) = \"" + nameCity + "\" ) }");
         ResultSet rs = qExec.execSelect();
@@ -226,9 +226,9 @@ public class PagesController {
         int nbStation = 0;
         
         RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/query");
-        QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos> "
+        QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> PREFIX ns1: <http://geo.> "
         		+ "SELECT ?n ?lon ?lat { ?v ns0:CityName ?n; ns0:CityPublicTransport _:ns. "
-        		+ "_:ns a ns0:CityBikeStation; ns0:StationLocalisation [ns1:lat ?lat; ns1:long ?lon;]."
+        		+ "_:ns a ns0:CityBikeStation; ns0:StationLocalisation [ns1:lat ?lat; ns1:lon ?lon;]."
         		+ "FILTER (str(?n) = \"" + name + "\" ) } ");
         ResultSet rs = qExec.execSelect();
 	
