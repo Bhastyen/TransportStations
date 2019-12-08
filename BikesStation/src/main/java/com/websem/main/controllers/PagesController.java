@@ -45,13 +45,8 @@ public class PagesController {
 		modelMap.put("Cities", cities);
 
     	// donne la derniere localisation visitee
-    	if (city != null) {
-	    	for (City c : cities) {
-	    		if (c.getName().equals(city)) {
-	        		modelMap.put("lastLocCity", c.getLocalisation());
-	        		break;
-	    		}
-	    	}
+    	if (city != null && !city.isEmpty()) {
+    		modelMap.put("lastLocCity", getCityWithName(city, cities).getLocalisation());
     	}
     	
     	return "pages/index";
@@ -59,11 +54,16 @@ public class PagesController {
 	
 
     @RequestMapping(value = "/", method = RequestMethod.POST)
-    public String promptStationCity(@RequestParam("city") String name, ModelMap modelMap) throws JSONException, IOException{
+    public String promptStationCity(@RequestParam("city") String name, @RequestParam(required=false) String lastCity, ModelMap modelMap) throws JSONException, IOException{
+		List<City> cities = listCity();
     	modelMap.put("Cities", listCity());
     	modelMap.put("CityChoose", cityStation(name));
-    	//modelMap.put("MapChoose", true);
 
+    	// donne la derniere localisation visitee
+    	if (lastCity != null && !lastCity.isEmpty()) {
+    		modelMap.put("lastLocCity", getCityWithName(lastCity, cities).getLocalisation());
+    	}
+    	
         //TODO update dynamic with city name
     	UpdateCity(name);
 
@@ -75,9 +75,9 @@ public class PagesController {
     	 
     	 //TODO
     	 //Recupere JSON sur site Dynamique
-    	 System.out.println("PageController-UpdateCity");
+    	 //System.out.println("PageController-UpdateCity");
     	 JSONObject json = JsonReader.readJsonFromUrl("https://saint-etienne-gbfs.klervi.net/gbfs/en/station_status.json");
-    	 System.out.println(json.toString());
+    	 //System.out.println(json.toString());
     	 
     	 //Creation Arbre pour analyser le Json
     	 ObjectMapper mapper = new ObjectMapper();
@@ -250,4 +250,13 @@ public class PagesController {
     	return new LocalisationCity(avgLat / nbStation, avgLon / nbStation);
     }
     
+    private static City getCityWithName(String name, List<City> cities) {
+    	for (City c : cities) {
+    		if (c.getName().equals(name)) {
+        		return c;
+    		}
+    	}
+    	
+    	return null;
+    } 
 }

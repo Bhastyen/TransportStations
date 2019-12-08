@@ -30,16 +30,16 @@ function initMap(cities, latc, lonc, zoom) {
 
 
 function reinitMap(lastLoc){
-	inc = 12
-	latc = lat
-	lonc = lon
+	inc = 12;
+	latc = lat;
+	lonc = lon;
 	
 	// initialiser la latitude et la longitude
 	console.log(lastLoc);
 	
 	if (lastLoc != null){
-		latc = lastLoc.lat
-		lonc = lastLoc.lg
+		latc = lastLoc.lat;
+		lonc = lastLoc.lg;
 	}
 	
 
@@ -61,39 +61,29 @@ function reinitMap(lastLoc){
 		    macarte.setView([latc, lonc], inc);
 		}
 	}
+
+	// execute la premiere etape de l'animation tout de suite
+	dezoomMap();
 }
 
-
-function changeCity(city){   // type : City
-	inc = 0
-	locs = []
-	name_stations = []
+function goToCity(city){   // type : City
+	inc = 0;
+	locs = [];
 	
 	// valeur par defaut : localisation Paris
-	locs.push(lat)
-	locs.push(lon)
-	name_stations.push(city.name);
+	locs.push(lat);
+	locs.push(lon);
 	
 	if (city.localisation != null && 
 			(city.localisation.lat != 0 || city.localisation.lg != 0)){
 		
-		locs[0] = city.localisation.lat
-		locs[1] = city.localisation.lg
+		locs[0] = city.localisation.lat;
+		locs[1] = city.localisation.lg;
 	}
 
 	// positionnement de la carte sur la ville
     macarte.setView([locs[0], locs[1]], 4);
 	id = setInterval(zoomMap, time);
-	
-	// positionnement des markers de stations
-	for (var i = 0; i < city.bikesStations.length; i++){
-		var st = city.bikesStations[i];
-		if (st.localisation.lat != 0 || st.localisation.lg != 0){
-			locs.push(st.localisation.lat);
-			locs.push(st.localisation.lg);
-			name_stations.push(st.name);
-		}
-	}
 	
 	// fonction d'animation du zoom
 	function zoomMap(){
@@ -102,13 +92,71 @@ function changeCity(city){   // type : City
 	        clearInterval(id);
 		    macarte.setView([locs[0], locs[1]], 4 + (inc + 1));
 		    
-		    for (var i = 0; i < locs.length; i+=2){
-		    	var marker = L.marker([locs[i], locs[i+1]]).addTo(macarte);
-		    	marker.bindPopup(name_stations[i/2]);
-		    }
+		    // creer les popup et les marqueurs pour les stations
+		    createPopup(city);
 		}else{
 		    inc += 2;
 		    macarte.setView([locs[0], locs[1]], 4 + (inc + 1));
+		}
+	}
+	
+	// execute la premiere etape de l'animation tout de suite
+	zoomMap();
+}
+
+function changeCity(locCityDep, cityArr){   // type : localisationCity, City
+	inc = 0; len = 0; zoom = false;
+	pos = [0, 0];
+	dir = [0, 0];
+
+	// calcul direction du deplacement
+	len = Math.sqrt((cityArr.localisation.lat - locCityDep.lat) * (cityArr.localisation.lat - locCityDep.lat) + 
+			(cityArr.localisation.lg - locCityDep.lg) * (cityArr.localisation.lg - locCityDep.lg));
+	
+	dir[0] = (cityArr.localisation.lat - locCityDep.lat) / len;
+	dir[1] = (cityArr.localisation.lg - locCityDep.lg) / len;
+	
+	// calul de la position de depart
+	pos[0] = locCityDep.lat;
+	pos[1] = locCityDep.lg;
+	
+	// creation de l'animation
+	id = setInterval(moveMap, 400);
+	
+	// fonction d'animation du deplacement
+	function moveMap(){
+		
+		if (inc >= 2 && zoom){
+	        clearInterval(id);
+		    macarte.setView([cityArr.localisation.lat, cityArr.localisation.lg], 7 + inc * 3);
+		    
+		    // creer les popup et les marqueurs pour les stations
+		    createPopup(cityArr);
+		}else if (inc >= 2 && !zoom){
+			inc = 0;
+			zoom = !zoom;
+		}else if (!zoom){
+		    inc += 1;
+		    macarte.setView(pos, 12 - inc * 3);
+		}else if (zoom){
+		    inc += 1;
+			
+			// calul de la nouvelle position
+			//pos[0] = pos[0] + dir[0];
+			//pos[1] = pos[1] + dir[1];
+			
+		    macarte.setView([cityArr.localisation.lat, cityArr.localisation.lg], 7 + inc * 3);
+		}
+	}
+}
+
+function createPopup(city){
+	
+	for (var i = 0; i < city.bikesStations.length; i++){
+		var st = city.bikesStations[i];
+		if (st.localisation.lat != 0 || st.localisation.lg != 0){
+	    	var marker = L.marker([st.localisation.lat, st.localisation.lg]).addTo(macarte);
+	    	marker.bindPopup(st.name);
 		}
 	}
 }

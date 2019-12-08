@@ -22,6 +22,7 @@
         <tr th:each="city : ${Cities}">
             <td>
 			 <form action ="/" th:method="${CityChoose == null || city.name != CityChoose.name? 'POST' : 'GET'}">
+			 	 <input type="hidden" id="lastCity" name="lastCity" onclick="" th:value="${CityChoose != null? CityChoose.name : ''}"/>
 	           	 <label for="city" th:class="${CityChoose == null || city.name != CityChoose.name? '' : 'active'}">
 	           		 <input type="submit" id="city" name="city" onclick="" th:value="${city.name}"/>
 	           	 </label>
@@ -71,7 +72,7 @@
 			
 			<script type="text/javascript" th:inline="javascript" th:if="${CityChoose != null && lastLocCity == null}">
 				initMap(/*[[${Cities}]]*/, /*[[${CityChoose.localisation.lat}]]*/, /*[[${CityChoose.localisation.lg}]]*/, 4);
-				changeCity(/*[[${CityChoose}]]*/);
+				goToCity(/*[[${CityChoose}]]*/);
 			</script>
 			
 			<script type="text/javascript" th:inline="javascript" th:if="${CityChoose == null && lastLocCity != null}">
@@ -80,44 +81,27 @@
 			</script>
 			
 			<script type="text/javascript" th:inline="javascript" th:if="${CityChoose != null && lastLocCity != null}">
-				initMap(null, /*[[${CityChoose.localisation.lat}]]*/, /*[[${CityChoose.localisation.lg}]]*/, 12);
+				initMap(null, /*[[${lastLocCity.lat}]]*/, /*[[${lastLocCity.lg}]]*/, 12);
+				changeCity(/*[[${lastLocCity}]]*/, /*[[${CityChoose}]]*/);
 			</script>
 			
-		    <div th:if="${CityChoose != null && lastLocCity == null}">
-	        	<script type="text/javascript" th:inline="javascript">
-	        	
-				</script>
-			    
-			    <div th:if="${TableChoose}">  
-			        <!--table>
-			            <tr>
-			                <td>Nom Station</td>
-			                <td>Capacité Total</td>
-			                <td>Localisation lat</td>
-			                <td>Localisation long</td>
-			            </tr>
-			            
-			            <tr th:each="bikeStation : ${CityChoose.bikesStations}" >
-			                <td th:text="${bikeStation.name}"></td>
-			                <td th:text="${bikeStation.capacity}"></td>
-			                <td th:text="${bikeStation.localisation.lat}"></td>
-			                <td th:text="${bikeStation.localisation.lg}"></td>
-			            </tr>
-			        </table-->
-		        </div>
-		    </div>
-		    
-		    <div th:if="${CityChoose != null && lastLocCity != null}">
-	        	<script type="text/javascript" th:inline="javascript">
-
-				</script>
-		    </div>
-		    
-		    <div th:if="${CityChoose == null && lastLocCity != null}">
-	        	<script type="text/javascript" th:inline="javascript">
-
-				</script>
-		    </div>
+		    <div th:if="${TableChoose}">  
+		        <!--table>
+		            <tr>
+		                <td>Nom Station</td>
+		                <td>Capacité Total</td>
+		                <td>Localisation lat</td>
+		                <td>Localisation long</td>
+		            </tr>
+		            
+		            <tr th:each="bikeStation : ${CityChoose.bikesStations}" >
+		                <td th:text="${bikeStation.name}"></td>
+		                <td th:text="${bikeStation.capacity}"></td>
+		                <td th:text="${bikeStation.localisation.lat}"></td>
+		                <td th:text="${bikeStation.localisation.lg}"></td>
+		            </tr>
+		        </table-->
+	        </div>
 	    </div>
 
 	</div>
