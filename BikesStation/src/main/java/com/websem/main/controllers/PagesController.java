@@ -126,6 +126,13 @@ public class PagesController {
 	
     @GetMapping("/newCity")
     public String newCity(ModelMap model) {
+        // Envoyer vers la page newCity pour que l'utilisateur ajoute sa ville
+        return "pages/newCity";
+    }
+    
+    
+    @RequestMapping(value="/newCity", method = RequestMethod.POST)
+    public String newCity(@RequestParam(required = true) String staticLink, ModelMap model) {
         // Recuperer le Json
         String jsonPath = "https://saint-etienne-gbfs.klervi.net/gbfs/en/station_information.json";
 
@@ -136,7 +143,7 @@ public class PagesController {
         model.put("message", "You are in new page !!");
 
         // Appeler la page test pour afficher les donner entree
-        return "pages/next";
+        return "redirect:" + "/";
     }
 	
 

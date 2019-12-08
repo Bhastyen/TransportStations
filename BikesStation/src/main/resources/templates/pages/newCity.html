@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+	<meta charset="ISO-8859-1"/>
+	<title>Add new city</title>
+	<link rel="stylesheet" href="../../../css/new_city.css" th:href="@{/css/new_city.css}" />
+</head>
+
+<body>
+	 <form action ="/newCity" method="POST">
+	 
+	 	 <p class="title"> Bike </p>
+	 
+	 	 <p>Static Link</p>
+   		 <input type="text" class="staticLink" name="staticLink"/>
+       	 
+	 	 <p>Dynamic Link</p>
+   		 <input type="text" class="dynamicLink" name="dynamicLink"/>
+
+	 	 <!-- label for="type"> Type :
+			<select id="type" name="type">
+			  <option value="Bike"> Bike </option>
+			  <option value="Bus"> Bus </option>
+			  <option value="Subway"> Subway </option>
+			  <option value="Parking"> Parking </option>
+			</select>
+       	 </label-->
+
+  		 <input type="submit" id="add_city" value="Ajouter"/>
+	 </form>
+</body>
+
+</html>
+
