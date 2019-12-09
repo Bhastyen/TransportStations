@@ -147,7 +147,7 @@ public class PagesController {
 		//Update des donnees , connection a la base
 		conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/update");
 		//Suppression de l'update le plus ancien . limite de 10
-		if(nombreUpdate >=5) {
+		if(nombreUpdate >5) {
 			System.out.println("youngLastUpdate"+ youngLastUpdate + "olderLastUpdate" + olderLastUpdate);
 			System.out.println(lastUpdate+ " - "+ youngLastUpdate + " ="+ (lastUpdate - youngLastUpdate));
 			if(lastUpdate - youngLastUpdate > ECART_UPDATE) {//Si superieur a 10 min on delete du plus vieux
