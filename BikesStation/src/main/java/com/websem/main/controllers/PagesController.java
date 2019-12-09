@@ -41,7 +41,7 @@ import com.websem.main.models.LocalisationCity;
 
 @Controller
 public class PagesController {
-
+    public static final int ECART_UPDATE = 600;
 	@GetMapping("/")
 	public String home(@RequestParam(required = false) String city, ModelMap modelMap) {
 		List<City> cities = listCity();
@@ -68,12 +68,12 @@ public class PagesController {
     	}
     	
         //TODO update dynamic with city name
-    	UpdateCity(name);
+    	UpdateCity(getCityWithName(name, cities));
 
         return "pages/index";
     }
 
-	public void UpdateCity(String name) throws JSONException, IOException {//TODO modifier BDD pour avoir lien vers les donnees dynamique
+	public void UpdateCity(City city) throws JSONException, IOException {//TODO modifier BDD pour avoir lien vers les donnees dynamique
 		RDFConnection conn;
 		QueryExecution qExec;
 		ResultSet rs;
@@ -81,11 +81,14 @@ public class PagesController {
 		List<String> bikesAvailable = new ArrayList<String>(Arrays.asList("num_bikes_available")) ;
 		List<String> docksAvailable = new ArrayList<String>(Arrays.asList("num_docks_available")) ;
 		List<String> stationParentNode =new ArrayList<String>(Arrays.asList("stations")) ;
-
 		List<Integer> indiceArrayList = new ArrayList<>(); //List utiliser apres la recherche pour determiner quels termes sont dans le json pour la recherche en update
+		
 		int i = 0;
 		int lastUpdate;
-		String adresseDynamique ="";
+		String adresseDynamique =city.getDynamicLink();
+		String name = city.getName();
+		int youngLastUpdate = 0,olderLastUpdate = 0;
+		int nombreUpdate ,updateDelete;
 
 		//TODO
 		//Recupere JSON sur site Dynamique
@@ -93,26 +96,43 @@ public class PagesController {
 		//test
 
 		//Recuperation adresse des donnees dynamique
-		qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> "
-				+ "SELECT DISTINCT ?adresseDynamique {"
-				+ " ?s ns0:CityName ?name; "
-				+ "  ns0:LienDonneesDynamique ?adresseDynamique "
-				+ "FILTER (str(?name) = \""+name+"\" )}") ;
+		qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> "+
+		"SELECT DISTINCT ?lastupdate {"+
+				"?s ns0:CityName ?name ;" + 
+		"           ns0:CityPublicTransport ?n." + 
+		"        ?n a ns0:CityBikeStation; " + 
+		"             ns0:StationId ?id ;" + 
+		"             ns0:StationHistorique ?hs." +
+		 "       ?hs ns0:StationState[" +       				
+		       				"  ns0:Date ?lastupdate]" +
+		"        FILTER (str(?name) = \""+name+"\" )"
+				+ "}"
+				+ "ORDER BY ?lastupdate") ;
 		rs = qExec.execSelect();
-
-		System.out.println(qExec.getQuery().toString());
-		System.out.println("name "+name);
-		System.out.println("row number " + rs.getRowNumber());
-		// Recuperation des noms des villes pour afficher la liste
+	
+		
+	
+		//Recuperation du plus vieux et plus jeune lastUpdate
+		i=0;
 		while(rs.hasNext()) {
+			i++;
+			System.out.println("row while"+rs.getRowNumber());
 			QuerySolution qs = rs.next();
 
-			String adresse = qs.getResource("adresseDynamique").getURI();
-			adresseDynamique = adresse;
-
+			int lu = qs.getLiteral("lastupdate").getInt();
+			if(i==1) {
+				youngLastUpdate= lu;
+			}
+			else {
+				olderLastUpdate = lu;
+			}
 		}
+		nombreUpdate =i;
+		System.out.println("nombreup" + nombreUpdate);
 
 		qExec.close();
+		conn.close();
+		
 		JSONObject json = JsonReader.readJsonFromUrl(adresseDynamique);
 
 
@@ -123,18 +143,45 @@ public class PagesController {
 		JsonNode listStations = mapper.readTree(json.toString());
 
 		lastUpdate = listStations.findValue("last_updated").intValue();
-		//Suppression de l'update le plus ancien . limite de 10
 
+		//Update des donnees , connection a la base
+		conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/update");
+		//Suppression de l'update le plus ancien . limite de 10
+		if(nombreUpdate >=10) {
+			if(lastUpdate - youngLastUpdate > ECART_UPDATE) {//Si superieur a 10 min on delete du plus vieux
+				updateDelete = olderLastUpdate;
+			}else {//Sinon delete du plus jeune
+				updateDelete = youngLastUpdate;
+			}
+			conn.update("PREFIX ns0: <http://semanticweb.org/ontologies/City#> " +
+					"PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos>" +
+					"\r\n" +
+					"DELETE { " +
+					"  		  " +
+					"    			  ?hs ns0:StationState[" +
+					"  				  ns0:BikeAvailable ?v1; "+
+					"                  ns0:SlotAvailable ?v2;"+
+					"                  ns0:Date ?ls"+
+					"            " +
+					"					]." +
+					"}WHERE{" +
+					" 			 _:n ns0:CityName ?name ;" +
+					"             ns0:CityPublicTransport ?n." +
+					"              ?n a ns0:CityBikeStation; " +
+					"                  ns0:StationId ?id ;" +
+					"                  ns0:StationHistorique ?hs.          " +
+					"FILTER (str(?name) = \""+name+"\" )" +
+					"FILTER (str(?ls) = \""+updateDelete+"\" )"
+					+ "}");
+		}
 
 		//Recherche des termes du Json pour pouvoir faire le update
 		researchTermes(bikesAvailable,indiceArrayList,listStations);//indice trouver stocker dans indiceArrayList 0
 		researchTermes(docksAvailable,indiceArrayList,listStations);//indice trouver stocker dans indiceArrayList 1
 		researchTermes(stationParentNode,indiceArrayList,listStations);//indice trouver stocker dans indiceArrayList 2
 
-		conn.close();
+		
 
-		//Update des donnees , connection a la base
-		conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/update");
 		listStations = listStations.findValue(stationParentNode.get(indiceArrayList.get(2)));
 		for (JsonNode jsonNode: listStations) {
 
