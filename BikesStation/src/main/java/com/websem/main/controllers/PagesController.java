@@ -116,15 +116,15 @@ public class PagesController {
 		i=0;
 		while(rs.hasNext()) {
 			i++;
-			System.out.println("row while"+rs.getRowNumber());
+			
 			QuerySolution qs = rs.next();
 
 			int lu = qs.getLiteral("lastupdate").getInt();
 			if(i==1) {
-				youngLastUpdate= lu;
+				olderLastUpdate= lu;
 			}
 			else {
-				olderLastUpdate = lu;
+				youngLastUpdate = lu;
 			}
 		}
 		nombreUpdate =i;
@@ -147,32 +147,36 @@ public class PagesController {
 		//Update des donnees , connection a la base
 		conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/update");
 		//Suppression de l'update le plus ancien . limite de 10
-		if(nombreUpdate >=10) {
+		if(nombreUpdate >=5) {
+			System.out.println("youngLastUpdate"+ youngLastUpdate + "olderLastUpdate" + olderLastUpdate);
+			System.out.println(lastUpdate+ " - "+ youngLastUpdate + " ="+ (lastUpdate - youngLastUpdate));
 			if(lastUpdate - youngLastUpdate > ECART_UPDATE) {//Si superieur a 10 min on delete du plus vieux
 				updateDelete = olderLastUpdate;
 			}else {//Sinon delete du plus jeune
 				updateDelete = youngLastUpdate;
 			}
-			conn.update("PREFIX ns0: <http://semanticweb.org/ontologies/City#> " +
-					"PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos>" +
-					"\r\n" +
-					"DELETE { " +
-					"  		  " +
-					"    			  ?hs ns0:StationState[" +
-					"  				  ns0:BikeAvailable ?v1; "+
-					"                  ns0:SlotAvailable ?v2;"+
-					"                  ns0:Date ?ls"+
-					"            " +
-					"					]." +
-					"}WHERE{" +
-					" 			 _:n ns0:CityName ?name ;" +
-					"             ns0:CityPublicTransport ?n." +
-					"              ?n a ns0:CityBikeStation; " +
-					"                  ns0:StationId ?id ;" +
-					"                  ns0:StationHistorique ?hs.          " +
-					"FILTER (str(?name) = \""+name+"\" )" +
-					"FILTER (str(?ls) = \""+updateDelete+"\" )"
-					+ "}");
+			System.out.println("DELETE " + updateDelete);
+			conn.update( "PREFIX ns0: <http://semanticweb.org/ontologies/City#> "
+				+"PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos>"
+
+				+"	DELETE { "
+				+"	  		          ?hs ns0:StationState ?s."
+				+"	  				         ?s ns0:BikeAvailable ?ba;"
+				+"	                            ns0:SlotAvailable ?sa;"
+				+"	                            ns0:Date ?ls"
+										
+				+"	}WHERE{"
+				+"	 			?adresse ns0:CityName ?name;"
+				+"	                     ns0:CityPublicTransport ?n."
+				+"	            ?n a ns0:CityBikeStation ."
+				+"	  			?n ns0:StationHistorique ?hs."
+				+"	            ?hs ns0:StationState ?s."
+				+"	  				         ?s ns0:BikeAvailable ?ba;"
+				+"	                            ns0:SlotAvailable ?sa;"
+				+"	                            ns0:Date ?ls"	
+				+"             FILTER(str(?name) = \""+name+"\")"
+				+"	           FILTER(?ls = "+updateDelete+")}"
+					);
 		}
 
 		//Recherche des termes du Json pour pouvoir faire le update
