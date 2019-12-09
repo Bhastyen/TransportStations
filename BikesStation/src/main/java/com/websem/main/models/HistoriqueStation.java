@@ -9,18 +9,22 @@ public class HistoriqueStation {
 	public HistoriqueStation(){
 
 	}
+	
 	public HistoriqueStation(String date, int bikeAvailable, int slotAvailable) {
 		super();
 		this.date = date;
 		this.bikeAvailable = bikeAvailable;
 		this.slotAvailable = slotAvailable;
 	}
+	
 	public String getDate() {
 		return date;
 	}
+	
 	public int getBikeAvailable() {
 		return bikeAvailable;
 	}
+	
 	public int getSlotAvailable() {
 		return slotAvailable;
 	}
