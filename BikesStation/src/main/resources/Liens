@@ -21,3 +21,7 @@ Dynamique Paris https://velib-metropole-opendata.smoove.pro/opendata/Velib_Metro
 Info Boston https://www.wikidata.org/wiki/Q100
 Static https://feeds.citibikenyc.com/stations/stations.json
 Dynamique https://feeds.citibikenyc.com/stations/stations.json
+
+Info NewYork
+Static https://feeds.citibikenyc.com/stations/stations.json
+Dynamique https://feeds.citibikenyc.com/stations/stations.json

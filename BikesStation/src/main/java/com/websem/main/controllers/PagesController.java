@@ -113,8 +113,8 @@ public class PagesController {
 		//Recherche des termes du Json pour pouvoir faire le update 
 		champsJson =researchsTermesBike(listeTerme, listStations);
 
-		informationsUpdate.add(listStations.findValue(champsJson.get("lastUpdate")).asInt());
-		
+		//informationsUpdate.add(listStations.findValue(champsJson.get("lastUpdate")).asInt());
+		informationsUpdate.add((int) (System.currentTimeMillis()/1000));
 		
 		//Update des donnees , connection a la base
 		conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/update");
@@ -419,14 +419,14 @@ public class PagesController {
 	private static void InitialisationCheckValueBikeStation(List<List<String>> listTermes) { 
 		//ORDRE [0]stationParentNode,[1]stationId,[2]stationName [3]StationLat [4]StationLon [5]StationCapacity [6]bikesAvailable [7]docksAvailable
 		//Listes de termes a checker pour pouvoir construire le turtle
-		List<String> stationParentNode =new ArrayList<String>(Arrays.asList("stationParentNode","stations")) ;
+		List<String> stationParentNode =new ArrayList<String>(Arrays.asList("stationParentNode","stations","stationBeanList")) ;
 		List<String> stationId = new ArrayList<String>(Arrays.asList("stationId","station_id","id")) ;
 		List<String> stationName = new ArrayList<String>(Arrays.asList("stationName","name","s")) ;
 		List<String> stationLat = new ArrayList<String>(Arrays.asList("stationLat","lat","latitude","la")) ;
 		List<String> stationLon = new ArrayList<String>(Arrays.asList("stationLon","lon","longitude","lg","long","lo")) ;
 		List<String> stationCapacity = new ArrayList<String>(Arrays.asList("stationCapacity","capacity")) ;
-		List<String> bikesAvailable = new ArrayList<String>(Arrays.asList("bikesAvailable","num_bikes_available","bikes_available","numBikesAvailable","ba")) ;
-		List<String> docksAvailable = new ArrayList<String>(Arrays.asList("docksAvailable","num_docks_available","docks_available","numDocksAvailable","da")) ;
+		List<String> bikesAvailable = new ArrayList<String>(Arrays.asList("bikesAvailable","num_bikes_available","bikes_available","numBikesAvailable","ba","availableBikes")) ;
+		List<String> docksAvailable = new ArrayList<String>(Arrays.asList("docksAvailable","num_docks_available","docks_available","numDocksAvailable","da","availableDocks")) ;
 		List<String> lastUpdate = new ArrayList<String>(Arrays.asList("lastUpdate","last_updated","lastUpdate","lastUpdatedOther","lu"));
 		//Liste de list de termes
 
