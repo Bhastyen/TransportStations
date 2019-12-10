@@ -6,6 +6,14 @@ Info Saint_Etienne https://www.wikidata.org/wiki/Q42716
 Static  Saint_Etienne https://saint-etienne-gbfs.klervi.net/gbfs/en/station_information.json 
 Dynamic Saint_Etienne https://saint-etienne-gbfs.klervi.net/gbfs/en/station_status.json
 
-Info Marseille
-Static Marseille https://transport.data.gouv.fr/gbfs/marseille/station_information.json
+Info Marseille https://www.wikidata.org/wiki/Q23482
+Static Marseille https://transport.data.gouv.fr/gbfs/marseille/station_status.json
 Dynamic Marseille https://transport.data.gouv.fr/gbfs/marseille/station_status.json
+
+Info Avignon https://www.wikidata.org/wiki/Q6397
+Static Avignon
+Dynamique Avignon
+
+Info Paris 
+Static Paris https://velib-metropole-opendata.smoove.pro/opendata/Velib_Metropole/station_information.json
+Dynamique Paris https://velib-metropole-opendata.smoove.pro/opendata/Velib_Metropole/station_status.json
