@@ -7,7 +7,7 @@ Static  Saint_Etienne https://saint-etienne-gbfs.klervi.net/gbfs/en/station_info
 Dynamic Saint_Etienne https://saint-etienne-gbfs.klervi.net/gbfs/en/station_status.json
 
 Info Marseille https://www.wikidata.org/wiki/Q23482
-Static Marseille https://transport.data.gouv.fr/gbfs/marseille/station_status.json
+Static Marseille https://transport.data.gouv.fr/gbfs/marseille/station_information.json
 Dynamic Marseille https://transport.data.gouv.fr/gbfs/marseille/station_status.json
 
 Info Avignon https://www.wikidata.org/wiki/Q6397
@@ -22,6 +22,10 @@ Info Boston https://www.wikidata.org/wiki/Q100
 Static https://member.bluebikes.com/data/stations.json
 Dynamique https://member.bluebikes.com/data/stations.json
 
-Info NewYork
+Info NewYork https://www.wikidata.org/wiki/Q60
 Static https://feeds.citibikenyc.com/stations/stations.json
 Dynamique https://feeds.citibikenyc.com/stations/stations.json
+
+Info Colombus https://www.wikidata.org/wiki/Q16567
+Static https://feeds.cogobikeshare.com/stations/stations.json
+Dynamic https://feeds.cogobikeshare.com/stations/stations.json
