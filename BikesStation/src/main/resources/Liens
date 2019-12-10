@@ -11,9 +11,13 @@ Static Marseille https://transport.data.gouv.fr/gbfs/marseille/station_status.js
 Dynamic Marseille https://transport.data.gouv.fr/gbfs/marseille/station_status.json
 
 Info Avignon https://www.wikidata.org/wiki/Q6397
-Static Avignon
-Dynamique Avignon
+Static Avignon https://avignon-gbfs.klervi.net/gbfs/en/station_information.json
+Dynamique Avignon https://avignon-gbfs.klervi.net/gbfs/en/station_status.json
 
-Info Paris 
+Info Paris https://www.wikidata.org/wiki/Q90
 Static Paris https://velib-metropole-opendata.smoove.pro/opendata/Velib_Metropole/station_information.json
 Dynamique Paris https://velib-metropole-opendata.smoove.pro/opendata/Velib_Metropole/station_status.json
+
+Info Boston https://www.wikidata.org/wiki/Q100
+Static https://feeds.citibikenyc.com/stations/stations.json
+Dynamique https://feeds.citibikenyc.com/stations/stations.json
