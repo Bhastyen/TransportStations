@@ -3,6 +3,8 @@ package com.websem.main.controllers;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.io.OutputStream;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -10,14 +12,20 @@ import java.util.Map;
 import java.util.*;
 
 import org.apache.jena.query.QueryExecution;
+import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.QuerySolution;
+import org.apache.jena.query.QuerySolutionMap;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Literal;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFactory;
 import org.apache.jena.sparql.modify.request.UpdateDataInsert;
 import org.apache.jena.sparql.modify.request.UpdateVisitor;
 import org.apache.jena.sparql.util.NodeIsomorphismMap;
+import org.apache.jena.riot.Lang;
+import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.system.Txn;
 import org.apache.jena.update.Update;
 import org.apache.jena.update.UpdateAction;
@@ -36,6 +44,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.thesmartenergy.sparql.generate.jena.SPARQLGenerate;
+import com.github.thesmartenergy.sparql.generate.jena.engine.PlanFactory;
+import com.github.thesmartenergy.sparql.generate.jena.engine.RootPlan;
+import com.github.thesmartenergy.sparql.generate.jena.query.SPARQLGenerateQuery;
+import com.jayway.jsonpath.JsonPath;
 import com.websem.main.models.BikeStation;
 import com.websem.main.models.City;
 import com.websem.main.models.HistoriqueStation;
@@ -46,23 +59,24 @@ import com.websem.main.models.LocalisationCity;
 
 @Controller
 public class PagesController {
-    public static final int ECART_UPDATE = 600;
+	public static final int ECART_UPDATE = 600;
+	private static final int TAILLE_MAX_HISTORIQUE = 4;
 	@GetMapping("/")
 	public String home(@RequestParam(required = false) String city, ModelMap modelMap) {
 		List<City> cities = listCity();
 		modelMap.put("Cities", cities);
 
-    	// donne la derniere localisation visitee
-    	if (city != null && !city.isEmpty()) {
-    		modelMap.put("lastLocCity", getCityWithName(city, cities).getLocalisation());
-    	}
-    	
-    	return "pages/index";
-	}
-	
+		// donne la derniere localisation visitee
+		if (city != null && !city.isEmpty()) {
+			modelMap.put("lastLocCity", getCityWithName(city, cities).getLocalisation());
+		}
 
-    @RequestMapping(value = "/", method = RequestMethod.POST)
-    public String promptStationCity(@RequestParam("city") String name, @RequestParam(required=false) String lastCity, ModelMap modelMap) throws JSONException, IOException{
+		return "pages/index";
+	}
+
+
+	@RequestMapping(value = "/", method = RequestMethod.POST)
+	public String promptStationCity(@RequestParam("city") String name, @RequestParam(required=false) String lastCity, ModelMap modelMap) throws JSONException, IOException{
 		List<City> cities = listCity();
 		City cityChoose = cityStation(name);
 		
@@ -77,64 +91,95 @@ public class PagesController {
         // update dynamic with city name
     	UpdateCity(cityChoose);
 
-        return "pages/index";
-    }
+		//TODO update dynamic with city name
+		UpdateCity(getCityWithName(name, cities));
+
+		return "pages/index";
+	}
 
 	public void UpdateCity(City city) throws JSONException, IOException {//TODO modifier BDD pour avoir lien vers les donnees dynamique
 		RDFConnection conn;
-		QueryExecution qExec;
-		ResultSet rs;
-		UpdateRequest up = new UpdateRequest();
+		JSONObject json;
 		long begin, end; double total = 0;
 
-		List<String> bikesAvailable = new ArrayList<String>(Arrays.asList("num_bikes_available")) ;
-		List<String> docksAvailable = new ArrayList<String>(Arrays.asList("num_docks_available")) ;
-		List<String> stationParentNode =new ArrayList<String>(Arrays.asList("stations")) ;
-		List<Integer> indiceArrayList = new ArrayList<>(); //List utiliser apres la recherche pour determiner quels termes sont dans le json pour la recherche en update
-		
-		int i = 0;
-		int lastUpdate;
-		String adresseDynamique = city.getDynamicLink();
+		List<List<String>> listeTerme = new ArrayList<List<String>>();
+		HashMap<String, String> champsJson;
+
+		ArrayList<Integer> informationsUpdate = new ArrayList<Integer>();
+
+		String adresseDynamique =city.getDynamicLink();
 		String name = city.getName();
-		int youngLastUpdate = 0,olderLastUpdate = 0;
-		int nombreUpdate ,updateDelete;
+	
+		//Recupere l'update le plus jeune / vieux et le nombre total d'update
+		informationsUpdate =getLastsUpdate(name);
+		
+		//Recupere JSON sur site Dynamique
+		
+		json = JsonReader.readJsonFromUrl(adresseDynamique);
+
+		//Creation Arbre pour analyser le Json
+		ObjectMapper mapper = new ObjectMapper();
+		JsonNode listStations = mapper.readTree(json.toString());
+
+		//Recherche des termes du Json pour pouvoir faire le update 
+		champsJson = researchsTermesBike(listeTerme, listStations);
 
 		begin = System.currentTimeMillis();
-		//TODO
-		// Recupere JSON sur site Dynamique
-		conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/query");
+		//informationsUpdate.add(listStations.findValue(champsJson.get("lastUpdate")).asInt());
+		informationsUpdate.add((int) (System.currentTimeMillis()/1000));
 		end = System.currentTimeMillis();
 		total += ((double) (end - begin) / 1000.0);
 		
 		System.out.println("Connexion Time : " + ((double) (end - begin) / 1000.0));
+		
+		//Update des donnees , connection a la base
+		conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/update");
+		//Suppression de l'update le plus ancien . limite de 10 pour les velo
+		
+		updateDelete(informationsUpdate,conn,name);
+		
+		//Insertion du nouvelle historique pour les velo
+		updateInsert(informationsUpdate,conn,name,listStations ,champsJson);
+			
+		conn.close();
+		//TODO ?? Selon les donnees (france , amerique) les noms differe , parser avec jsonObject
+		//et Jackson trop specifiaue https://www.mkyong.com/java/jackson-convert-json-array-string-to-list/
+	}
+
+	private static ArrayList<Integer> getLastsUpdate(String name){
+		RDFConnection conn;
+		QueryExecution qExec;
+		QuerySolution qs ;
+		ResultSet rs;
+		ArrayList<Integer> lastsUpdate = new ArrayList<Integer>();
+		int i ,youngLastUpdate = 0,olderLastUpdate=0,nombreUpdate;
+
+		conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/query");
 
 		// Recuperation adresse des donnees dynamique
-		begin = System.currentTimeMillis();
 		qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> "+
-		"SELECT DISTINCT ?lastupdate {"+
+				"SELECT DISTINCT ?lastupdate {"+
 				"?s ns0:CityName ?name ;" + 
-		"           ns0:CityPublicTransport ?n." + 
-		"        ?n a ns0:CityBikeStation; " + 
-		"             ns0:StationId ?id ;" + 
-		"             ns0:StationHistorique ?hs." +
-		 "       ?hs ns0:StationState[" +       				
-		       				"  ns0:Date ?lastupdate]" +
-		"        FILTER (str(?name) = \""+name+"\" )"
-				+ "} "
-				+ "ORDER BY ?lastupdate");
+				"           ns0:CityPublicTransport ?n." + 
+				"        ?n a ns0:CityBikeStation; " + 
+				"             ns0:StationId ?id ;" + 
+				"             ns0:StationHistorique ?hs." +
+				"       ?hs ns0:StationState[" +       				
+				"  ns0:Date ?lastupdate]" +
+				"        FILTER (str(?name) = \""+name+"\" )"
+				+ "}"
+				+ "ORDER BY ?lastupdate") ;
 		rs = qExec.execSelect();
 
-		end = System.currentTimeMillis();
-		total += ((double) (end - begin) / 1000.0);
-		System.out.println("Query Select Time : " + ((double) (end - begin) / 1000.0));
-		
-	
-		// Recuperation du plus vieux et plus jeune lastUpdate
-		i = 0;
+
+
+		//Recuperation du plus vieux et plus jeune lastUpdate
+		i=0;
 		while(rs.hasNext()) {
-			QuerySolution qs = rs.next();
-			
 			i++;
+
+			qs = rs.next();
+
 			int lu = qs.getLiteral("lastupdate").getInt();
 			
 			if (i == 1) {
@@ -143,53 +188,43 @@ public class PagesController {
 				youngLastUpdate = lu;
 			}
 		}
-		
+
 		nombreUpdate = i;
-		
-		//System.out.println("nombreup " + nombreUpdate);
 
 		qExec.close();
 		conn.close();
+		
+		lastsUpdate.add(youngLastUpdate);
+		lastsUpdate.add(olderLastUpdate);
+		lastsUpdate.add(nombreUpdate);
 
-		begin = System.currentTimeMillis();
-		JSONObject json = JsonReader.readJsonFromUrl(adresseDynamique);
+		return lastsUpdate;
+	
+	}
+	
+	private void updateDelete(ArrayList<Integer> informationsUpdate,RDFConnection conn,String name) {
+		int youngLastUpdate = informationsUpdate.get(0);
+		int olderLastUpdate = informationsUpdate.get(1);
+		int nombreUpdate = informationsUpdate.get(2);
+		int lastUpdate = informationsUpdate.get(3);
+		int updateDelete =0;
 
-		end = System.currentTimeMillis();
-		total += ((double) (end - begin) / 1000.0);
-		System.out.println("Get json Time : " + ((double) (end - begin) / 1000.0));
-
-		// Verification de la date du dernier update pour voir quand cela a ete changer
-
-		// Creation Arbre pour analyser le Json
-		ObjectMapper mapper = new ObjectMapper();
-		JsonNode listStations = mapper.readTree(json.toString());
-
-		lastUpdate = listStations.findValue("last_updated").intValue();
-
-		//Update des donnees , connection a la base
-		conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/update");
-
-		begin = System.currentTimeMillis();
-		//Suppression de l'update le plus ancien . limite de 10
-		if(nombreUpdate >= 5) {
-			//System.out.println("youngLastUpdate"+ youngLastUpdate + "olderLastUpdate" + olderLastUpdate);
-			//System.out.println(lastUpdate+ " - "+ youngLastUpdate + " ="+ (lastUpdate - youngLastUpdate));
+		if(nombreUpdate >TAILLE_MAX_HISTORIQUE) {
 			if(lastUpdate - youngLastUpdate > ECART_UPDATE) {//Si superieur a 10 min on delete du plus vieux
 				updateDelete = olderLastUpdate;
 			}else {//Sinon delete du plus jeune
 				updateDelete = youngLastUpdate;
 			}
-			
-			//System.out.println("DELETE " + updateDelete);
+
 			conn.update( "PREFIX ns0: <http://semanticweb.org/ontologies/City#> "
-				+"PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos>"
+					+"PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos>"
 
 				+"	DELETE { "
 				+"	  		          ?hs ns0:StationState ?s."
 				+"	  				         ?s ns0:BikeAvailable ?ba;"
 				+"	                            ns0:SlotAvailable ?sa;"
 				+"	                            ns0:Date ?ls"
-										
+
 				+"	}WHERE{"
 				+"	 			?adresse ns0:CityName ?name;"
 				+"	                     ns0:CityPublicTransport ?n."
@@ -203,30 +238,20 @@ public class PagesController {
 				+"	           FILTER(?ls = "+updateDelete+")}"
 					);
 		}
-		end = System.currentTimeMillis();
-		total += ((double) (end - begin) / 1000.0);
-		System.out.println("Delete old or young update Time : " + ((double) (end - begin) / 1000.0));
+	}
+	
+	private void updateInsert(ArrayList<Integer> informationsUpdate, RDFConnection conn, String name, JsonNode listStations, HashMap<String, String> champsJson) {
+		UpdateRequest up = new UpdateRequest();
+		int lastUpdate = informationsUpdate.get(3);
+	 	listStations = listStations.findValue(champsJson.get("stationParentNode"));
 
-
-		begin = System.currentTimeMillis();
-		//Recherche des termes du Json pour pouvoir faire le update
-		researchTermes(bikesAvailable,indiceArrayList,listStations);//indice trouver stocker dans indiceArrayList 0
-		researchTermes(docksAvailable,indiceArrayList,listStations);//indice trouver stocker dans indiceArrayList 1
-		researchTermes(stationParentNode,indiceArrayList,listStations);//indice trouver stocker dans indiceArrayList 2
-		end = System.currentTimeMillis();
-		total += ((double) (end - begin) / 1000.0);
-		System.out.println("Get Reserch Term Time : " + ((double) (end - begin) / 1000.0));
-
-		
-		listStations = listStations.findValue(stationParentNode.get(indiceArrayList.get(2)));
 		for (JsonNode jsonNode: listStations) {
-			String idStation = jsonNode.findValue("station_id").asText();
-			String bikeAvailable = jsonNode.findValue(bikesAvailable.get(indiceArrayList.get(0))).asText();
-			String slotAvailable = jsonNode.findValue(docksAvailable.get(indiceArrayList.get(1))).asText();
+			String idStation = jsonNode.findValue(champsJson.get("stationId")).asText();
+			String bikeAvailable = jsonNode.findValue(champsJson.get("bikesAvailable")).asText();
+			String slotAvailable = jsonNode.findValue(champsJson.get("docksAvailable")).asText();
 
 			up.add("PREFIX ns0: <http://semanticweb.org/ontologies/City#> " +
 					"PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos> " +
-					"\r\n" +
 					"INSERT { " +
 					"  		  " +
 					"    			  ?hs ns0:StationState[" +
@@ -245,122 +270,225 @@ public class PagesController {
 					"FILTER (str(?id) = \"" + idStation + "\" )"
 					+ "}");
 		}
-
-		begin = System.currentTimeMillis();
+		
 		conn.update(up);
-		end = System.currentTimeMillis();
-		total += ((double) (end - begin) / 1000.0);
-		System.out.println(name + " Insertion Time : " + ((double) (end - begin) / 1000.0));
-		System.out.println("Update Total Time : " + total);
-
-		conn.close();
-		//TODO ?? Selon les donnees (france , amerique) les noms differe , parser avec jsonObject
-		//et Jackson trop specifiaue https://www.mkyong.com/java/jackson-convert-json-array-string-to-list/
-		//Chercher par  termes qui peuvent correspondre a nos besoins (?)
-		//Creer dictionnaire exemple : name = stationName
-		//Trouver moyen de stocker en liste les Json
-		//Chercher par le nom defini et faire la suite avec
-
-
-
-
-
-		//Boucle sur le JSON prie , iterator chaque noeud ; delete / insert ???
-		//TODO
-		//Pour chaque station
-		//Lastupdate du JSON SELECT -> Not exist (raw == 0 ) SELECT Historistation
-		//DELETE pour StationId BikeAvaiable / SlotAvaiable
-		//INSERT pour StationId BikeAvaiable / SlotAvaiable
-		//Select pour idStation/HistoriqueStation all : StateStation -> Trier par ordre croissant LIMIT 1 -> HISTODEL
-		//DELETE HISTODEL
-
-		// conn.update(request);
-
 	}
 
-	private static void researchTermes(List<String> list,List<Integer>indices,JsonNode treeJson) {
-		int i=0;
+	private static HashMap<String,String> researchsTermesBike(List<List<String>> listTermes,JsonNode treeJson) {
+		//Ordre 
+		HashMap<String, String> champsJson = new HashMap<String,String>();; //Champs , Champs trouver dans le Json
+		InitialisationCheckValueBikeStation(listTermes);
+
+		for (List<String> list : listTermes) {
+			researchTermes(list, champsJson, treeJson);
+		}
+
+		return champsJson;
+	}
+
+	private static void researchTermes(List<String> list,HashMap<String,String> champsJson,JsonNode treeJson) {
+		int i = 0;
+		Boolean b = false;
+		String champs = list.get(0);
+
 		for (String terme : list) {
 
-			if(treeJson.findValue(terme)!=null) {
-				indices.add(i);
+			if(treeJson.findValue(terme) != null) {
+				JsonNode node = treeJson.findValue(terme);
+				String g = "";
+
+				/*System.out.println("Find terme data  " + terme);
+					System.out.println("Find terme data findpath " + treeJson.findPath(terme).asText());
+					System.out.println("Find terme data path " + treeJson.path(terme).asText());
+					System.out.println("Find terme data a " + treeJson.findValues(terme).toString());
+					System.out.println("Find terme data  b" + treeJson.findValues(terme));
+					System.out.println("Find terme data c" + treeJson.findPath(terme));
+					System.out.println("Find terme data d" + treeJson.findParents(terme));*/
+
+				//String value = JSONDataReader.getStringValue(jPath, jsonData);
+
+
+				champsJson.put(champs, treeJson.path(terme).toString());
+				b = true;
+				break;
+			}
+
+			i++;
+		}
+
+		for (String terme : list) {
+
+			if(treeJson.findValue(terme) != null) {
+				System.out.println("Find terme " + terme);
+				champsJson.put(champs,terme);
+				b = true;
 				break;
 			}
 			i++;
 		}
 
+		if(b == false) {
+			champsJson.put(champs, champs);
+		}
+
 	}
 
-	 @GetMapping("/newCity")
-	    public String newCity(ModelMap model) {
-	        // Envoyer vers la page newCity pour que l'utilisateur ajoute sa ville
-	        return "pages/newCity";
-	    }
-	    
-	    
-	    @RequestMapping(value="/newCity", method = RequestMethod.POST)
-	    public String newCity(@RequestParam String staticLink, @RequestParam String dynamicLink, ModelMap model) {
-	    	URI staticL = null, dynamicL = null;
-	    	
-	    	try {
-	    		staticL = new URI(staticLink);
-	    		dynamicL = new URI(dynamicLink);
-	    	}catch (URISyntaxException e) {
-	    		System.out.println("URI incorrecte : " + staticLink + "  " + dynamicLink);
-			}
-	    	
-	    	// on ne traite la demande que si on a une uri
-	    	if (staticL != null && dynamicL != null) {
-		        // Recuperer le Json
-		        String jsonPath = "https://saint-etienne-gbfs.klervi.net/gbfs/en/station_information.json";
-	
-		        // Parser le Json pour le transformer en RDF
-	
-		        // Put le RDF obtenu dans fuseki
- 		        // TODO https://www.w3.org/TR/2013/REC-sparql11-update-20130321/#updateLanguage
-		        model.put("message", "You are in new page !!");
-	    	}
-	    	
-	        // Appeler la page test pour afficher les donner entree
-	        return "redirect:" + "/";
-	    }
+	@GetMapping("/newCity")
+	public String newCity(ModelMap model) {
+		// Envoyer vers la page newCity pour que l'utilisateur ajoute sa ville
+		return "pages/newCity";
+	}
 
-    private static List<City> listCity(){
-        List<City> listCity = new ArrayList<City>();
-        City city;
-        
-        RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/query");
-        QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> "
-        								+ "SELECT DISTINCT ?link ?iri ?name {"
-        									+ " ?iri ns0:CityName ?name; "
-        										 + " ns0:LienDonneesDynamique ?link"
-        								+ "}");
-        ResultSet rs = qExec.execSelect();
-        
-        // Recuperation des noms des villes pour afficher la liste
-        while(rs.hasNext()) {
-            QuerySolution qs = rs.next();
-            Literal name = qs.getLiteral("name");
-            
-            city = new City(name.toString(), new LocalisationCity(0,  0));
-            city.setIRI(qs.getResource("iri").getURI());
-            city.setDynamicLink(qs.getResource("link").getURI());
-            listCity.add(city);
-        }
-        
-        qExec.close();
-        conn.close();
 
-	    // recupere la position de chaque ville
-        for (int i = 0; i < listCity.size(); i++) {
-        	city = listCity.get(i);
-        	city.setLocalisation(getLocalisation(city.getName()));
-        }
-        
-        return  listCity;
-    }
+	@RequestMapping(value="/newCity", method = RequestMethod.POST)
+	public String newCity(@RequestParam(required = true) String nameCity, String staticLink, String dynamicLink, String wikidataCity, ModelMap model) throws JSONException, IOException {
+    	URI staticL = null, dynamicL = null;
+    	
+    	try {
+    		staticL = new URI(staticLink);
+    		dynamicL = new URI(dynamicLink);
+    	}catch (URISyntaxException e) {
+    		System.out.println("URI incorrecte : " + staticLink + "  " + dynamicLink);
+		}
+    	
+    	// on ne traite la demande que si on a une uri
+    	if (staticL != null && dynamicL != null) {
+			//List pour determiner quels sont les indices des differentes liste ci-dessous qui sont viable pour inserer une nouvelle ville
+			List<Integer> indicesList  = new ArrayList<Integer>();
+			List<List<String>> listTermes = new ArrayList<List<String>>();//ORDRE stationParentNode,stationId,stationName,stationLat,stationLon,stationCapacity);
+			HashMap<String, String> champsJson;
+
+			//Arbre Json du dynamique , sert a trouver les termes viable pour inserer une nouvelle ville
+			JSONObject json = JsonReader.readJsonFromUrl(staticLink);
+			//Creation Arbre pour analyser le Json
+			ObjectMapper mapper = new ObjectMapper();
+			JsonNode listStations = mapper.readTree(json.toString());
+
+
+			//ORDRE [0]stationParentNode,[1]stationId,[2]stationName [3]StationLat [4]StationLon [5]StationCapacity [6]bikesAvailable [7]docksAvailable
+
+
+			//Determiner les parametres
+			champsJson=researchsTermesBike(listTermes,listStations);
+			/*System.out.println(champsJson.get("stationParentNode"));
+			System.out.println(champsJson.get("stationId"));
+			System.out.println(champsJson.get("stationName"));
+			System.out.println(champsJson.get("stationLat"));
+			System.out.println(champsJson.get("stationLon"));
+			System.out.println(champsJson.get("stationCapacity"));*/
+
+			// Parser le Json pour le transformer en RDF
+			SPARQLGenerateQuery query = (SPARQLGenerateQuery) QueryFactory.create("PREFIX ite: <http://w3id.org/sparql-generate/iter/>"
+					+" PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>"
+					+" PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>"
+					+" PREFIX exVoc: <http://www.ex-city.com/>"
+					+" PREFIX ex: <http://example.org/>"
+					+" PREFIX ns0: <http://semanticweb.org/ontologies/City#> "
+					+" PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos> "
+					+" PREFIX iter: <http://w3id.org/sparql-generate/iter/>"
+					+" PREFIX fun: <http://w3id.org/sparql-generate/fn/>"
+
+	                    +" GENERATE { "
+	                    +" <"+wikidataCity+"> a ns0:City;"
+	                    +"  ns0:CityPublicTransport _:ns;"
+	                    +"                ns0:CityName \""+nameCity+"\";"
+	                    +"                ns0:LienDonneesDynamique <"+dynamicLink+">."
+	                    +"  _:ns a ns0:CityBikeStation ;"
+	                    +"   ns0:StationId ?stationId;"
+	                    +"   ns0:Stationname ?name;"
+	                    +"   ns0:StationLocalisation [ "
+	                    +" ns1:lat ?lat;"
+	                    +"  ns1:long ?lon;"
+	                    +"   ] ;"
+	                    +"  ns0:StationTotalcapacity ?capacity;"
+	                    +"  ns0:StationHistorique []."
+	                    +" }"
+	                    +" SOURCE <"+staticLink+"> AS ?chemin"
+	                    +" ITERATOR ite:JSONPath(?chemin, \"data.stations.*\") AS ?source"
+	                    +" WHERE{"
+	                    +" BIND(STR((fun:JSONPath(?source,\".station_id\"))) AS ?stationId)"
+	                    +" BIND(STR((fun:JSONPath(?source,\"$."+ champsJson.get("stationName")+"\"))) AS ?name)"
+	                    +" BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationLat")+"\"))) AS ?lat) "
+	                    +"  BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationLon")+"\"))) AS ?lon)"
+	                    +"  BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationCapacity")+"\"))) AS ?capacity) "
+	                    +" }"
+	                    , SPARQLGenerate.SYNTAX);
+
+			RootPlan plan = PlanFactory.create(query);
+
+			Model m = plan.exec();
+
+			// Put le RDF obtenu dans fuseki
+			RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/");	 
+			conn.load(m);
+			conn.close();
+
+			// TODO https://www.w3.org/TR/2013/REC-sparql11-update-20130321/#updateLanguage
+		}
+
+		return "redirect:" + "/";
+	}
+
+	private static void InitialisationCheckValueBikeStation(List<List<String>> listTermes) { 
+		//ORDRE [0]stationParentNode,[1]stationId,[2]stationName [3]StationLat [4]StationLon [5]StationCapacity [6]bikesAvailable [7]docksAvailable
+		//Listes de termes a checker pour pouvoir construire le turtle
+		List<String> stationParentNode =new ArrayList<String>(Arrays.asList("stationParentNode","stations","stationBeanList")) ;
+		List<String> stationId = new ArrayList<String>(Arrays.asList("stationId","station_id","id")) ;
+		List<String> stationName = new ArrayList<String>(Arrays.asList("stationName","name","s")) ;
+		List<String> stationLat = new ArrayList<String>(Arrays.asList("stationLat","lat","latitude","la")) ;
+		List<String> stationLon = new ArrayList<String>(Arrays.asList("stationLon","lon","longitude","lg","long","lo")) ;
+		List<String> stationCapacity = new ArrayList<String>(Arrays.asList("stationCapacity","capacity")) ;
+		List<String> bikesAvailable = new ArrayList<String>(Arrays.asList("bikesAvailable","num_bikes_available","bikes_available","numBikesAvailable","ba","availableBikes")) ;
+		List<String> docksAvailable = new ArrayList<String>(Arrays.asList("docksAvailable","num_docks_available","docks_available","numDocksAvailable","da","availableDocks")) ;
+		List<String> lastUpdate = new ArrayList<String>(Arrays.asList("lastUpdate","last_updated","lastUpdate","lastUpdatedOther","lu"));
+		//Liste de list de termes
+
+		listTermes.add(stationParentNode);
+		listTermes.add(stationId);
+		listTermes.add(stationName);
+		listTermes.add(stationLat);
+		listTermes.add(stationLon);
+		listTermes.add(stationCapacity);
+		listTermes.add(bikesAvailable);
+		listTermes.add(docksAvailable);
+		listTermes.add(lastUpdate);
+	}
+
+	private static List<City> listCity(){
+		List<City> listCity = new ArrayList<City>();
+		City city;
+
+		RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/query");
+		QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> "
+				+ "SELECT DISTINCT ?link ?iri ?name {"
+				+ " ?iri ns0:CityName ?name; "
+				+ " ns0:LienDonneesDynamique ?link"
+				+ "}");
+		ResultSet rs = qExec.execSelect();
+
+		// Recuperation des noms des villes pour afficher la liste
+		while(rs.hasNext()) {
+			QuerySolution qs = rs.next();
+			Literal name = qs.getLiteral("name");
+
+			city = new City(name.toString(), new LocalisationCity(0,  0));
+			city.setIRI(qs.getResource("iri").getURI());
+			city.setDynamicLink(qs.getResource("link").getURI());
+			listCity.add(city);
+		}
+
+		qExec.close();
+		conn.close();
+
+		// recupere la position de chaque ville
+		for (int i = 0; i < listCity.size(); i++) {
+			city = listCity.get(i);
+			city.setLocalisation(getLocalisation(city.getName()));
+		}
+
+		return  listCity;
+	}
     
-
     private static City cityStation(String nameCity){
         City city = new City(nameCity, new LocalisationCity(0,  0));
         float avgLat = 0; float avgLon = 0;
@@ -402,61 +530,60 @@ public class PagesController {
             System.out.println(qs.getLiteral("stationId"));
             System.out.println(qs.getLiteral("lat"));
             System.out.println(qs.getLiteral("lon"));*/
-        }
+		}
 
-        qExec.close();
-	    conn.close();
+		qExec.close();
+		conn.close();
 
-	    // recupere la position de la ville
-    	city.setLocalisation(getLocalisation(city.getName()));
+		// recupere la position de la ville
+		city.setLocalisation(getLocalisation(city.getName()));
 
-        return city;
-    }
-    
+		return city;
+	}
 
-    private static LocalisationCity getLocalisation(String name) {
-        float avgLat = 0; float avgLon = 0;
-        int nbStation = 0;
+	private static LocalisationCity getLocalisation(String name) {
+		float avgLat = 0; float avgLon = 0;
+		int nbStation = 0;
 
-        RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/query");
-        QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos> "
-        		+ "SELECT ?n ?lon ?lat { ?v ns0:CityName ?n; ns0:CityPublicTransport _:ns. "
-        		+ "_:ns a ns0:CityBikeStation; ns0:StationLocalisation [ns1:lat ?lat; ns1:long ?lon;]."
-        		+ "FILTER (str(?n) = \"" + name + "\" )} ");
-        ResultSet rs = qExec.execSelect();
+		RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/query");
+		QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos> "
+				+ "SELECT ?n ?lon ?lat { ?v ns0:CityName ?n; ns0:CityPublicTransport _:ns. "
+				+ "_:ns a ns0:CityBikeStation; ns0:StationLocalisation [ns1:lat ?lat; ns1:long ?lon;]."
+				+ "FILTER (str(?n) = \"" + name + "\" )} ");
+		ResultSet rs = qExec.execSelect();
 
-	    // Recuperation des localisations des stations
-	    while(rs.hasNext()) {
-	        QuerySolution qs = rs.next();
+		// Recuperation des localisations des stations
+		while(rs.hasNext()) {
+			QuerySolution qs = rs.next();
 
-	        String n = qs.getLiteral("n").getString();
-	        float lon = qs.getLiteral("lon").getFloat();
-	        float lat = qs.getLiteral("lat").getFloat();
+			String n = qs.getLiteral("n").getString();
+			float lon = qs.getLiteral("lon").getFloat();
+			float lat = qs.getLiteral("lat").getFloat();
 
-	        // j'ajoute la nouvelle latitude
-	        avgLat += lat;
+			// j'ajoute la nouvelle latitude
+			avgLat += lat;
 
-	        // j'ajoute la nouvelle longitude
-	        avgLon += lon;
+			// j'ajoute la nouvelle longitude
+			avgLon += lon;
 
-	        // j'augmente le nombre de stations
-	        nbStation += 1;
-	    }
+			// j'augmente le nombre de stations
+			nbStation += 1;
+		}
 
-	    qExec.close();
-	    conn.close();
+		qExec.close();
+		conn.close();
 
-	    // renvoie la localisation
-    	return new LocalisationCity(avgLat / nbStation, avgLon / nbStation);
-    }
+		// renvoie la localisation
+		return new LocalisationCity(avgLat / nbStation, avgLon / nbStation);
+	}
 
-    private static City getCityWithName(String name, List<City> cities) {
-    	for (City c : cities) {
-    		if (c.getName().equals(name)) {
-        		return c;
-    		}
-    	}
+	private static City getCityWithName(String name, List<City> cities) {
+		for (City c : cities) {
+			if (c.getName().equals(name)) {
+				return c;
+			}
+		}
 
-    	return null;
-    }
+		return null;
+	}
 }
