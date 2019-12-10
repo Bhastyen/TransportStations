@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.*;
 
 import org.apache.jena.query.QueryExecution;
@@ -61,6 +62,7 @@ import com.websem.main.models.LocalisationCity;
 public class PagesController {
 	public static final int ECART_UPDATE = 600;
 	private static final int TAILLE_MAX_HISTORIQUE = 4;
+	
 	@GetMapping("/")
 	public String home(@RequestParam(required = false) String city, ModelMap modelMap) {
 		List<City> cities = listCity();
@@ -100,50 +102,54 @@ public class PagesController {
 	public void UpdateCity(City city) throws JSONException, IOException {//TODO modifier BDD pour avoir lien vers les donnees dynamique
 		RDFConnection conn;
 		JSONObject json;
-		long begin, end; double total = 0;
+		long begin, end, total;
 
 		List<List<String>> listeTerme = new ArrayList<List<String>>();
 		HashMap<String, String> champsJson;
 
 		ArrayList<Integer> informationsUpdate = new ArrayList<Integer>();
 
-		String adresseDynamique =city.getDynamicLink();
+		String adresseDynamique = city.getDynamicLink();
 		String name = city.getName();
 	
-		//Recupere l'update le plus jeune / vieux et le nombre total d'update
-		informationsUpdate =getLastsUpdate(name);
+		total = System.currentTimeMillis();
 		
-		//Recupere JSON sur site Dynamique
+		// Recupere l'update le plus jeune / vieux et le nombre total d'update
+		informationsUpdate = getLastsUpdate(name);
 		
+		// Recupere JSON sur site Dynamique
+		begin = System.currentTimeMillis();
 		json = JsonReader.readJsonFromUrl(adresseDynamique);
+		end = System.currentTimeMillis();
+		System.out.println("Get json Time : " + ((double) (end - begin) / 1000.0));
 
-		//Creation Arbre pour analyser le Json
+		// Creation Arbre pour analyser le Json
 		ObjectMapper mapper = new ObjectMapper();
 		JsonNode listStations = mapper.readTree(json.toString());
 
-		//Recherche des termes du Json pour pouvoir faire le update 
+		// Recherche des termes du Json pour pouvoir faire le update 
 		champsJson = researchsTermesBike(listeTerme, listStations);
 
-		begin = System.currentTimeMillis();
-		//informationsUpdate.add(listStations.findValue(champsJson.get("lastUpdate")).asInt());
+		// informationsUpdate.add(listStations.findValue(champsJson.get("lastUpdate")).asInt());
 		informationsUpdate.add((int) (System.currentTimeMillis()/1000));
-		end = System.currentTimeMillis();
-		total += ((double) (end - begin) / 1000.0);
 		
-		System.out.println("Connexion Time : " + ((double) (end - begin) / 1000.0));
-		
-		//Update des donnees , connection a la base
+		// Update des donnees , connection a la base
 		conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/update");
-		//Suppression de l'update le plus ancien . limite de 10 pour les velo
 		
+		// Suppression de l'update le plus ancien . limite de 10 pour les velo
 		updateDelete(informationsUpdate,conn,name);
 		
-		//Insertion du nouvelle historique pour les velo
+		// Insertion du nouvelle historique pour les velo
+		begin = System.currentTimeMillis();
 		updateInsert(informationsUpdate,conn,name,listStations ,champsJson);
+		end = System.currentTimeMillis();
+		System.out.println("Update Insert Time : " + ((double) (end - begin) / 1000.0));
+		System.out.println("Total Time to Update : " + ((double) (end - total) / 1000.0));
 			
 		conn.close();
+		
 		//TODO ?? Selon les donnees (france , amerique) les noms differe , parser avec jsonObject
-		//et Jackson trop specifiaue https://www.mkyong.com/java/jackson-convert-json-array-string-to-list/
+		//et Jackson trop specifique https://www.mkyong.com/java/jackson-convert-json-array-string-to-list/
 	}
 
 	private static ArrayList<Integer> getLastsUpdate(String name){
@@ -243,7 +249,9 @@ public class PagesController {
 	private void updateInsert(ArrayList<Integer> informationsUpdate, RDFConnection conn, String name, JsonNode listStations, HashMap<String, String> champsJson) {
 		UpdateRequest up = new UpdateRequest();
 		int lastUpdate = informationsUpdate.get(3);
-	 	listStations = listStations.findValue(champsJson.get("stationParentNode"));
+		String path = champsJson.get("stationParentNode");
+		
+	 	listStations = listStations.findValue(path.substring(path.lastIndexOf('.') + 1));
 
 		for (JsonNode jsonNode: listStations) {
 			String idStation = jsonNode.findValue(champsJson.get("stationId")).asText();
@@ -289,48 +297,74 @@ public class PagesController {
 	private static void researchTermes(List<String> list,HashMap<String,String> champsJson,JsonNode treeJson) {
 		int i = 0;
 		Boolean b = false;
-		String champs = list.get(0);
+		String champs = list.get(0), path;
 
-		for (String terme : list) {
+		if(champs.equals("stationParentNode")) {
+			for (String terme : list) {
+	
+				if(treeJson.findValue(terme) != null) {
+					JsonNode node = treeJson.findValue(terme);
+					String g = "";
+	
+					/*System.out.println("Find terme data  " + terme);
+						System.out.println("Find terme data findpath " + treeJson.findPath(terme).asText());
+						System.out.println("Find terme data path " + treeJson.path(terme).asText());
+						System.out.println("Find terme data a " + treeJson.findValues(terme).toString());
+						System.out.println("Find terme data  b" + treeJson.findValues(terme));
+						System.out.println("Find terme data c" + treeJson.findPath(terme));
+						System.out.println("Find terme data d" + treeJson.findParents(terme));*/
+	
+					//String value = JSONDataReader.getStringValue(jPath, jsonData);
+					//champs = ;
+	
+					path = getPathListStation(treeJson, terme);
+					System.out.println("Path : " + path);
+					champsJson.put(champs, path);
+					b = true;
+					break;
+				}
+	
+				i++;
+			}
+		} else {
 
-			if(treeJson.findValue(terme) != null) {
-				JsonNode node = treeJson.findValue(terme);
-				String g = "";
+			for (String terme : list) {
+	
+				if (treeJson.findValue(terme) != null) {
+					System.out.println("Find terme " + terme);
+					champsJson.put(champs, terme);
+					b = true;
+					break;
+				}
+				i++;
+			}
+	
+			if (b == false) {
+				champsJson.put(champs, champs);
+			}
+		}
 
-				/*System.out.println("Find terme data  " + terme);
-					System.out.println("Find terme data findpath " + treeJson.findPath(terme).asText());
-					System.out.println("Find terme data path " + treeJson.path(terme).asText());
-					System.out.println("Find terme data a " + treeJson.findValues(terme).toString());
-					System.out.println("Find terme data  b" + treeJson.findValues(terme));
-					System.out.println("Find terme data c" + treeJson.findPath(terme));
-					System.out.println("Find terme data d" + treeJson.findParents(terme));*/
-
-				//String value = JSONDataReader.getStringValue(jPath, jsonData);
-
-
-				champsJson.put(champs, treeJson.path(terme).toString());
-				b = true;
-				break;
+	}
+	
+	private static String getPathListStation(JsonNode tree, String term) {
+		Iterator<Entry<String, JsonNode>> ite = tree.fields();
+		Entry<String, JsonNode> next;
+		String test;
+		
+		while (ite.hasNext()) {
+			next = ite.next();
+			
+			if (next.getKey().equals(term)) {
+				System.out.println("Node : " + next.getKey() + "  " + term);
+				return next.getKey();
 			}
 
-			i++;
+			test = getPathListStation(next.getValue(), term);
+			if (test != null)
+				return next.getKey() + "." + test;
 		}
-
-		for (String terme : list) {
-
-			if(treeJson.findValue(terme) != null) {
-				System.out.println("Find terme " + terme);
-				champsJson.put(champs,terme);
-				b = true;
-				break;
-			}
-			i++;
-		}
-
-		if(b == false) {
-			champsJson.put(champs, champs);
-		}
-
+		
+		return null;
 	}
 
 	@GetMapping("/newCity")
@@ -369,7 +403,8 @@ public class PagesController {
 
 
 			//Determiner les parametres
-			champsJson=researchsTermesBike(listTermes,listStations);
+			champsJson = researchsTermesBike(listTermes,listStations);
+			System.out.println("Id Lon : " + champsJson.get("stationLon"));
 			/*System.out.println(champsJson.get("stationParentNode"));
 			System.out.println(champsJson.get("stationId"));
 			System.out.println(champsJson.get("stationName"));
@@ -404,13 +439,13 @@ public class PagesController {
 	                    +"  ns0:StationHistorique []."
 	                    +" }"
 	                    +" SOURCE <"+staticLink+"> AS ?chemin"
-	                    +" ITERATOR ite:JSONPath(?chemin, \"data.stations.*\") AS ?source"
+	                    +" ITERATOR ite:JSONPath(?chemin, \"" + champsJson.get("stationParentNode") + ".*\") AS ?source"
 	                    +" WHERE{"
-	                    +" BIND(STR((fun:JSONPath(?source,\".station_id\"))) AS ?stationId)"
-	                    +" BIND(STR((fun:JSONPath(?source,\"$."+ champsJson.get("stationName")+"\"))) AS ?name)"
-	                    +" BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationLat")+"\"))) AS ?lat) "
-	                    +"  BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationLon")+"\"))) AS ?lon)"
-	                    +"  BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationCapacity")+"\"))) AS ?capacity) "
+	                    +" BIND(STR((fun:JSONPath(?source,\"." + champsJson.get("stationId") + "\"))) AS ?stationId)"
+	                    +" BIND(STR((fun:JSONPath(?source,\"$."+ champsJson.get("stationName") + "\"))) AS ?name)"
+	                    +" BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationLat") + "\"))) AS ?lat) "
+	                    +"  BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationLon") + "\"))) AS ?lon)"
+	                    +"  BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationCapacity") + "\"))) AS ?capacity) "
 	                    +" }"
 	                    , SPARQLGenerate.SYNTAX);
 
@@ -432,8 +467,8 @@ public class PagesController {
 	private static void InitialisationCheckValueBikeStation(List<List<String>> listTermes) { 
 		//ORDRE [0]stationParentNode,[1]stationId,[2]stationName [3]StationLat [4]StationLon [5]StationCapacity [6]bikesAvailable [7]docksAvailable
 		//Listes de termes a checker pour pouvoir construire le turtle
-		List<String> stationParentNode =new ArrayList<String>(Arrays.asList("stationParentNode","stations","stationBeanList")) ;
-		List<String> stationId = new ArrayList<String>(Arrays.asList("stationId","station_id","id")) ;
+		List<String> stationParentNode = new ArrayList<String>(Arrays.asList("stationParentNode", "stations", "stationBeanList")) ;
+		List<String> stationId = new ArrayList<String>(Arrays.asList("stationId", "station_id", "id")) ;
 		List<String> stationName = new ArrayList<String>(Arrays.asList("stationName","name","s")) ;
 		List<String> stationLat = new ArrayList<String>(Arrays.asList("stationLat","lat","latitude","la")) ;
 		List<String> stationLon = new ArrayList<String>(Arrays.asList("stationLon","lon","longitude","lg","long","lo")) ;
