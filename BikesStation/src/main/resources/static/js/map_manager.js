@@ -187,7 +187,7 @@ function stationFilter(city, field){
 		for (var i = 0; i < city.bikesStations.length; i++){
 			var st = city.bikesStations[i];
 			var name = st.name.toLowerCase();
-			if ((st.localisation.lat != 0 || st.localisation.lg != 0) && name.startsWith(search)){
+			if ((st.localisation.lat != 0 || st.localisation.lg != 0) && name.includes(search)){
 		    	var marker = L.marker([st.localisation.lat, st.localisation.lg]).addTo(macarte);
 		    	marker.bindPopup(st.name);
 			}
@@ -219,7 +219,7 @@ function refreshStationFilter(city){
 		for (var i = 0; i < city.bikesStations.length; i++){
 			var st = city.bikesStations[i];
 			var name = st.name.toLowerCase();
-			if ((st.localisation.lat != 0 || st.localisation.lg != 0) && name.startsWith(search)){
+			if ((st.localisation.lat != 0 || st.localisation.lg != 0) && name.includes(search)){
 		    	var marker = L.marker([st.localisation.lat, st.localisation.lg]).addTo(macarte);
 		    	marker.bindPopup(st.name);
 			}

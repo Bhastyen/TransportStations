@@ -29,3 +29,7 @@ Dynamique https://feeds.citibikenyc.com/stations/stations.json
 Info Colombus https://www.wikidata.org/wiki/Q16567
 Static https://feeds.cogobikeshare.com/stations/stations.json
 Dynamic https://feeds.cogobikeshare.com/stations/stations.json
+
+Info Lyon https://www.wikidata.org/wiki/Q456
+Static https://www.data.gouv.fr/en/datasets/r/70eff23f-d3f2-435d-9134-4387c129c04d
+Dynamic https://www.data.gouv.fr/en/datasets/r/70eff23f-d3f2-435d-9134-4387c129c04d
