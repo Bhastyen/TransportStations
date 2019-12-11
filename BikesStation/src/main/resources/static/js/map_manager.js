@@ -34,6 +34,18 @@ function initMap(cities, latc, lonc, zoom) {
 	        minZoom: 1,
 	        maxZoom: 20
 	    }).addTo(macarte);
+
+    L.Routing.control({
+        waypoints: [
+            L.latLng(57.74, 11.94),
+            L.latLng(57.6792, 11.949)
+        ],
+        routeWhileDragging: true,
+        router: L.Routing.graphHopper('62fcb6e5-14d3-4ac6-b64c-65eb9bcbb803')
+    }).addTo(macarte);
+
+	//var marker = L.marker([57.74, 11.94], {draggable:true}).addTo(macarte);
+	//var marker = L.marker([57.6792, 11.949], {draggable:true}).addTo(macarte);
 }
 
 

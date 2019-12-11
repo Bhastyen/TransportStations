@@ -467,8 +467,8 @@ public class PagesController {
 	private static void InitialisationCheckValueBikeStation(List<List<String>> listTermes) { 
 		//ORDRE [0]stationParentNode,[1]stationId,[2]stationName [3]StationLat [4]StationLon [5]StationCapacity [6]bikesAvailable [7]docksAvailable
 		//Listes de termes a checker pour pouvoir construire le turtle
-		List<String> stationParentNode = new ArrayList<String>(Arrays.asList("stationParentNode", "stations", "stationBeanList")) ;
-		List<String> stationId = new ArrayList<String>(Arrays.asList("stationId", "station_id", "id")) ;
+		List<String> stationParentNode = new ArrayList<String>(Arrays.asList("stationParentNode", "stations", "stationBeanList","properties")) ;
+		List<String> stationId = new ArrayList<String>(Arrays.asList("stationId", "station_id", "id","number")) ;
 		List<String> stationName = new ArrayList<String>(Arrays.asList("stationName","name","s")) ;
 		List<String> stationLat = new ArrayList<String>(Arrays.asList("stationLat","lat","latitude","la")) ;
 		List<String> stationLon = new ArrayList<String>(Arrays.asList("stationLon","lon","longitude","lg","long","lo")) ;
