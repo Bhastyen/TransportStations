@@ -224,22 +224,32 @@ function changeCity(locCityDep, cityArr){   // type : localisationCity, City
 	}
 }
 
-function createPopup(city){
+function createPopup(city){//https://www.datavis.fr/index.php?page=leaflet-cluster
 	var str = "";
     // specify popup options 
-    var customOptions =
-        {
-        'maxWidth': '500',
-        'className' : 'popup_table'
-        }
-    
+
+	var markersCluster = new L.MarkerClusterGroup()
+	/*var markersCluster = new L.MarkerClusterGroup({
+	    iconCreateFunction: function(cluster) {
+	        var digits = (cluster.getChildCount()+'').length;
+	        return L.divIcon({ 
+	            html: cluster.getChildCount(), 
+	            className: 'cluster digits-'+digits,
+	            iconSize: null 
+	        });
+	    }
+	});*/
+	
 	for (var i = 0; i < city.bikesStations.length; i++){
 		str = "";
 		var st = city.bikesStations[i];
 		var hist = st.listHistoriqueStation[st.listHistoriqueStation.length - 1]; // get the last update of this station
 		
 		if ((st.localisation.lat != 0 || st.localisation.lg != 0) && st.name.toLowerCase().includes(search)){
-	    	var marker = L.marker([st.localisation.lat, st.localisation.lg]).addTo(macarte);
+			var latLng = new L.LatLng(st.localisation.lat,st.localisation.lg);
+		    var marker = new L.Marker(latLng,{title: st.name});
+		    markersCluster.addLayer(marker); //{title: cities[i][0]}
+	    	//var marker = L.marker([st.localisation.lat, st.localisation.lg]).addTo(macarte);
 	    	str += "<h3 style='text-align:center;'>" + st.name + "</h3>";
 	    	str += "<table class='popup_table'>" +
 	    			"<thead>"
@@ -261,6 +271,8 @@ function createPopup(city){
 	    	marker.bindPopup(str);
 		}
 	}
+	//markersCluster.addTo(macarte);
+	macarte.addLayer(markersCluster);
 }
 
 function stationFilter(city, field){
