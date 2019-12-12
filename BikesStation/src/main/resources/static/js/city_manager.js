@@ -8,3 +8,10 @@ function changeStyleCity(element){
 	
 }
 
+function showNewCityError(message){
+	
+	setTimeout( function(){
+			alert(message);
+		}
+	, 1000);
+}

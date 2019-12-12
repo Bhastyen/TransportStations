@@ -1,8 +1,11 @@
 package com.websem.main.models;
 
+import java.util.Date;
+
+
 
 public class HistoriqueStation {
-	private String date; //TODO mettre en format date ?
+	private long date;
 	private int bikeAvailable;
 	private int slotAvailable;
 
@@ -10,7 +13,7 @@ public class HistoriqueStation {
 
 	}
 	
-	public HistoriqueStation(String date, int bikeAvailable, int slotAvailable) {
+	public HistoriqueStation(long date, int bikeAvailable, int slotAvailable) {
 		super();
 		this.date = date;
 		this.bikeAvailable = bikeAvailable;
@@ -18,7 +21,8 @@ public class HistoriqueStation {
 	}
 	
 	public String getDate() {
-		return date;
+		Date d = new Date(date);
+		return d.toString();
 	}
 	
 	public int getBikeAvailable() {

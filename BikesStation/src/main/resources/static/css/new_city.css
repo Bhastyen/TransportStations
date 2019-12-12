@@ -15,8 +15,8 @@ body{
 }
 
 form{
-	width: 15vw;
-	height: 30vh;
+	width: 25vw;
+	height: 50vh;
 	
 	padding: 20px;
 	
@@ -33,12 +33,8 @@ form{
 	margin-bottom: 50px;
 }
 
-.staticLink{
-	width: 15vw;
-}
-
-.dynamicLink{
-	width: 15vw;
+input[type="text"] {
+	width: 20vw;
 }
 
 #add_city{

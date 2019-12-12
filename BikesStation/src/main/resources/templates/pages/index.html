@@ -5,13 +5,13 @@
 			rdfs: http://www.w3.org/2000/01/rdf-schema#
 			ns0: http://semanticweb.org/ontologies/City#
 			ite: http://w3id.org/sparql-generate/iter/
-			ns1: http://geo.
+			ns1: http://www.w3.org/2003/01/geo/wgs84_pos
 			crm: http://www.cidoc-crm.org/cidoc-crm/"
     lang="fr">
 
 <head>
 	<meta charset="ISO-8859-1"/>
-	<title>Bikes</title>
+	<title>Bike Station App</title>
 	<link rel="stylesheet" href="../../../css/carousel.css" th:href="@{/css/carousel.css}" />
 	<link rel="stylesheet" href="../../../css/bootstrap.min.css" th:href="@{/css/bootstrap.min.css}" />
 	<link rel="stylesheet" href="../../../css/font-awesome.min.css" th:href="@{/css/font-awesome.min.css}" />
@@ -53,10 +53,13 @@
 		<div id="stations_container">
 			<div id="costumization">
 				<div id="transport1_container">
-					<div id="select_bike" th:onclick="addRemoveTypeTransport(this, 'Bike'); refreshStationFilter(/*[[${CityChoose}]]*/);">
+					<!-- div id="select_bike" th:onclick="addRemoveTypeTransport(this, 'Bike'); refreshStationFilter(/*[[${CityChoose}]]*/);">
 						<img alt="Bike" src="../../../css/images/icon-bike.png" th:href="@{/css/images/icon-bike.png}">
 					</div>
 					<div id="select_bus" th:onclick="addRemoveTypeTransport(this, 'Bus'); refreshStationFilter(/*[[${CityChoose}]]*/);">
+						<img alt="Bus" src="../../../css/images/icon-bus.png" th:href="@{/css/images/icon-bus.png}">
+					</div-->
+					<div th:if="${CityChoose}" id="select_begin" th:onclick="addTrip(true);">
 						<img alt="Bus" src="../../../css/images/icon-bus.png" th:href="@{/css/images/icon-bus.png}">
 					</div>
 				</div>
@@ -66,12 +69,15 @@
 				</div>
 				
 				<div id="transport2_container">
-					<div id="select_subway" th:onclick="addRemoveTypeTransport(this, 'Subway'); refreshStationFilter(/*[[${CityChoose}]]*/);">
+					<div th:if="${CityChoose}" id="select_end" th:onclick="addTrip(false);">
+						<img alt="Train" src="../../../css/images/icon-train.png" th:href="@{/css/images/icon-train.png}">
+					</div>
+					<!-- div id="select_subway" th:onclick="addRemoveTypeTransport(this, 'Subway'); refreshStationFilter(/*[[${CityChoose}]]*/);">
 						<img alt="Subway" src="../../../css/images/icon-train.png" th:href="@{/css/images/icon-train.png}">
 					</div>
 					<div id="select_parking" th:onclick="addRemoveTypeTransport(this, 'Parking'); refreshStationFilter(/*[[${CityChoose}]]*/);">
 						<img alt="Parking" src="../../../css/images/icon-car.png" th:href="@{/css/images/icon-car.png}">
-					</div>
+					</div-->
 				</div>
 			</div>
 			
@@ -92,6 +98,7 @@
 			<script type="text/javascript" th:inline="javascript" th:if="${CityChoose != null && lastLocCity == null}">
 				initMap(/*[[${Cities}]]*/, /*[[${CityChoose.localisation.lat}]]*/, /*[[${CityChoose.localisation.lg}]]*/, 4);
 				goToCity(/*[[${CityChoose}]]*/);
+				updateCityToShow(/*[[${CityChoose}]]*/);
 			</script>
 			
 			<script type="text/javascript" th:inline="javascript" th:if="${CityChoose == null && lastLocCity != null}">
@@ -102,6 +109,7 @@
 			<script type="text/javascript" th:inline="javascript" th:if="${CityChoose != null && lastLocCity != null}">
 				initMap(null, /*[[${lastLocCity.lat}]]*/, /*[[${lastLocCity.lg}]]*/, 12);
 				changeCity(/*[[${lastLocCity}]]*/, /*[[${CityChoose}]]*/);
+				updateCityToShow(/*[[${CityChoose}]]*/);
 			</script>
 			
 	        <table th:about="${CityChoose.IRI}" th:if="${CityChoose}" style="display:none;">
@@ -111,7 +119,14 @@
 	                <td property="ns0:StationTotalcapacity" datatype="rdf:integer" th:content="${bikeStation.capacity}"></td>
 	                <td rel="ns0:StationLocalisation">
 	                	<span property="ns1:lat" datatype="rdf:float" th:content="${bikeStation.localisation.lat}"></span>
-	                	<span property="ns1:lon" datatype="rdf:float" th:content="${bikeStation.localisation.lg}"></span>
+	                	<span property="ns1:long" datatype="rdf:float" th:content="${bikeStation.localisation.lg}"></span>
+	                </td>
+	                <td rel="ns0:StationHistorique">
+	                	<span rel="ns0:StationState" th:each="state : ${bikeStation.listHistoriqueStation}">
+		                	<span property="ns0:Date" datatype="rdf:long" th:content="${state.date}"></span>
+		                	<span property="ns0:BikeAvailable" datatype="rdf:integer" th:content="${state.bikeAvailable}"></span>
+		                	<span property="ns0:SlotAvailable" datatype="rdf:integer" th:content="${state.slotAvailable}"></span>
+	                	</span>
 	                </td>
 	            </tr>
 	        </table>

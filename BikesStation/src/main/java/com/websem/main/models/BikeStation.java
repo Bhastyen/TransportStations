@@ -9,7 +9,9 @@ public class BikeStation {
 	private String capacity;
 	private LocalisationCity localisation;
 	private String name;
-	private HistoriqueStation stateStation; //TODO List<HistoriqueStation>
+	private HistoriqueStation stateStation;
+	private List<HistoriqueStation> listHistoriqueStation;
+	
 	
 	public BikeStation(String idStation, String capacity, String name, LocalisationCity localisation,
 			List<HistoriqueStation> listHistoriqueStation) {
@@ -20,8 +22,6 @@ public class BikeStation {
 		this.name = name;
 		this.listHistoriqueStation = listHistoriqueStation;
 	}
-	
-	private List<HistoriqueStation> listHistoriqueStation;
 	
 	public String getIdStation() {
 		return idStation;
