@@ -10,6 +10,7 @@ var types = ['Bike'];
 var search = '';
 var macarte = null;
 var cityToShow = null;
+var controlRouting = null;
 
 
 function initMap(cities, latc, lonc, zoom) {
@@ -232,7 +233,7 @@ function createPopup(city){
 		var st = city.bikesStations[i];
 		var hist = st.listHistoriqueStation[st.listHistoriqueStation.length - 1]; // get the last update of this station
 		
-		if (st.localisation.lat != 0 || st.localisation.lg != 0){
+		if (st.localisation.lat != 0 || st.localisation.lg != 0 && name.includes(search)){
 	    	var marker = L.marker([st.localisation.lat, st.localisation.lg]).addTo(macarte);
 	    	str += "<p>" + st.name + "  " + st.capacity + "<p>";
 	    	str += "<p style='text-align:center;'>" + hist.bikeAvailable + "  " + hist.slotAvailable + "<p>";
@@ -265,14 +266,7 @@ function refreshStationFilter(city){
 	    macarte = L.map('map').setView([city.localisation.lat, city.localisation.lg], 13);
 		
 	    // ajout des marqueurs pertinant
-		for (var i = 0; i < city.bikesStations.length; i++){
-			var st = city.bikesStations[i];
-			var name = st.name.toLowerCase();
-			if ((st.localisation.lat != 0 || st.localisation.lg != 0) && name.includes(search)){
-		    	var marker = L.marker([st.localisation.lat, st.localisation.lg]).addTo(macarte);
-		    	marker.bindPopup(st.name);
-			}
-		}
+	    createPopup(city);
 	    
 	    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
 		    attribution: 'données © <a href="//osm.org/copyright">OpenStreetMap</a>/ODbL - rendu <a href="//openstreetmap.fr">OSM France</a>',
@@ -297,19 +291,17 @@ function refreshStationFilter(city){
 	    });
 		
 		// add the trip
-		if (pointers.length >= 8) {
-			L.Routing.control({
-			    waypoints: [
-			        L.latLng(pointers[0], pointers[1]),
-			        L.latLng(pointers[2], pointers[3]),
-			        L.latLng(pointers[4], pointers[5]),
-			        L.latLng(pointers[6], pointers[7])
-			    ],
-			    routeWhileDragging: true,
-			    useZoomParameter: false,
-        		router: L.Routing.graphHopper('62fcb6e5-14d3-4ac6-b64c-65eb9bcbb803')
-			}).addTo(macarte);
-		}
+		controlRouting = L.Routing.control({
+		    waypoints: [
+		        L.latLng(pointers[0 % pointers.length], pointers[1 % pointers.length]),
+		        L.latLng(pointers[2 % pointers.length], pointers[3 % pointers.length]),
+		        L.latLng(pointers[4 % pointers.length], pointers[5 % pointers.length]),
+		        L.latLng(pointers[6 % pointers.length], pointers[7 % pointers.length])
+		    ],
+		    routeWhileDragging: true,
+		    useZoomParameter: false,
+    		router: L.Routing.graphHopper('62fcb6e5-14d3-4ac6-b64c-65eb9bcbb803')
+		}).addTo(macarte);
 	}
 }
 

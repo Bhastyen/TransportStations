@@ -92,22 +92,22 @@
 			<script type="text/javascript" src="../../../js/map_manager.js" th:href="@{/js/map_manager.js}"></script>
 			
 			<script type="text/javascript" th:inline="javascript" th:if="${CityChoose == null && lastLocCity == null}">
-				initMap(/*[[${Cities}]]*/, 45.43992, 4.3896303, 4);
+				initMap(/*[[${Cities}]]*/, 45.43992, 4.3896303, 3);
 			</script>
 			
 			<script type="text/javascript" th:inline="javascript" th:if="${CityChoose != null && lastLocCity == null}">
-				initMap(/*[[${Cities}]]*/, /*[[${CityChoose.localisation.lat}]]*/, /*[[${CityChoose.localisation.lg}]]*/, 4);
+				initMap(/*[[${Cities}]]*/, /*[[${CityChoose.localisation.lat}]]*/, /*[[${CityChoose.localisation.lg}]]*/, 3);
 				goToCity(/*[[${CityChoose}]]*/);
 				updateCityToShow(/*[[${CityChoose}]]*/);
 			</script>
 			
 			<script type="text/javascript" th:inline="javascript" th:if="${CityChoose == null && lastLocCity != null}">
-				initMap(/*[[${Cities}]]*/, /*[[${lastLocCity.lat}]]*/, /*[[${lastLocCity.lg}]]*/, 12);
+				initMap(/*[[${Cities}]]*/, /*[[${lastLocCity.lat}]]*/, /*[[${lastLocCity.lg}]]*/, 13);
         		reinitMap(/*[[${lastLocCity}]]*/);
 			</script>
 			
 			<script type="text/javascript" th:inline="javascript" th:if="${CityChoose != null && lastLocCity != null}">
-				initMap(null, /*[[${lastLocCity.lat}]]*/, /*[[${lastLocCity.lg}]]*/, 12);
+				initMap(null, /*[[${lastLocCity.lat}]]*/, /*[[${lastLocCity.lg}]]*/, 13);
 				changeCity(/*[[${lastLocCity}]]*/, /*[[${CityChoose}]]*/);
 				updateCityToShow(/*[[${CityChoose}]]*/);
 			</script>
