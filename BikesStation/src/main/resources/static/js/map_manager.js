@@ -3,9 +3,13 @@
 var time = 400;
 var lat = 45.43992;
 var lon = 4.3896303;
+var control_begin_pointer = false;
+var control_end_pointer = false;
+var pointers = [];
 var types = ['Bike'];
 var search = '';
 var macarte = null;
+var cityToShow = null;
 
 
 function initMap(cities, latc, lonc, zoom) {
@@ -27,15 +31,86 @@ function initMap(cities, latc, lonc, zoom) {
 	    }
     }
     
-    // Leaflet ne récupère pas les cartes (tiles) sur un serveur par défaut. Nous devons lui préciser où nous souhaitons les récupérer. Ici, openstreetmap.fr
     L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
-	    // Il est toujours bien de laisser le lien vers la source des données
 	    attribution: 'données © <a href="//osm.org/copyright">OpenStreetMap</a>/ODbL - rendu <a href="//openstreetmap.fr">OSM France</a>',
 	        minZoom: 1,
 	        maxZoom: 20
 	    }).addTo(macarte);
+    
+    // add marker when a user click on the map
+    macarte.on('click', function(e) {
+    	
+    	if (control_begin_pointer) {
+	        var popLocation = e.latlng;
+	    	addPointeur(popLocation, true);
+	    	refreshStationFilter(cityToShow);
+    	}
+    	
+    	if (control_end_pointer) {
+	        var popLocation = e.latlng;
+	    	addPointeur(popLocation, false);
+	    	refreshStationFilter(cityToShow);
+    	}
+    });
 }
 
+function addPointer(newLocation, begin) {
+	var locStation = nearestStation(newLocation); // compute the nearest station
+	
+	if (begin && pointers.length < 2) {
+		pointers.push(popLocation);
+	    pointers.push(locStation);
+	}
+
+	if (begin && pointers.length >= 4) {
+		pointers[0] = popLocation;
+		pointers[1] = locStation;
+	}
+	
+	if (!begin && pointers.length < 4) {	
+		pointers.push(popLocation);
+	    pointers.push(locStation);
+	}
+
+	if (!begin && pointers.length >= 4) {
+		pointers[2] = popLocation;
+		pointers[3] = locStation;
+	}
+	
+    // "close" the button to add a pointer
+	control_begin_pointer = false;
+	control_end_pointer = false;
+}
+
+function nearestStation(newLocation) {
+	var nearest = null;
+	var st;
+	var dist1, dist2;
+	
+	for (var i = 0; i < city.bikesStations.length; i++){
+		st = city.bikesStations[i];
+		
+		if (nearest != null){
+			dist1 = Math.sqrt((st.localisation.lat - newLocation[0]) * (st.localisation.lat - newLocation[0]) + (st.localisation.lg - newLocation[1]) * (st.localisation.lg - newLocation[1]));  
+			dist2 = Math.sqrt((nearest.lat - newLocation[0]) * (nearest.lat - newLocation[0]) + (nearest.lg - newLocation[1]) * (nearest.lg - newLocation[1]));  
+			
+			console.log("Dist1 " + dist1);
+			console.log("Dist2 " + dist2);
+			
+			if (dist1 < dist2) {
+				nearest = st.localisation;
+			}
+		} else {
+			nearest = st.localisation;
+		}
+	}
+	
+	return nearest;
+}
+
+function updateCityToShow(city) {
+	cityToShow = city;
+}
 
 function reinitMap(lastLoc){
 	inc = 12;
@@ -157,12 +232,18 @@ function changeCity(locCityDep, cityArr){   // type : localisationCity, City
 }
 
 function createPopup(city){
+	var str = "";
 	
 	for (var i = 0; i < city.bikesStations.length; i++){
+		str = "";
 		var st = city.bikesStations[i];
+		var hist = st.listHistoriqueStation[st.listHistoriqueStation.length - 1]; // get the last update of this station
+		
 		if (st.localisation.lat != 0 || st.localisation.lg != 0){
 	    	var marker = L.marker([st.localisation.lat, st.localisation.lg]).addTo(macarte);
-	    	marker.bindPopup(st.name);
+	    	str += "<p>" + st.name + "  " + st.capacity + "<p>";
+	    	str += "<p style='text-align:center;'>" + hist.bikeAvailable + "  " + hist.slotAvailable + "<p>";
+	    	marker.bindPopup(str);
 		}
 	}
 }
@@ -193,9 +274,7 @@ function stationFilter(city, field){
 			}
 		}
 	    
-	    // Leaflet ne récupère pas les cartes (tiles) sur un serveur par défaut. Nous devons lui préciser où nous souhaitons les récupérer. Ici, openstreetmap.fr
 	    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
-		    // Il est toujours bien de laisser le lien vers la source des données
 		    attribution: 'données © <a href="//osm.org/copyright">OpenStreetMap</a>/ODbL - rendu <a href="//openstreetmap.fr">OSM France</a>',
 		        minZoom: 1,
 		        maxZoom: 20
@@ -225,13 +304,24 @@ function refreshStationFilter(city){
 			}
 		}
 	    
-	    // Leaflet ne récupère pas les cartes (tiles) sur un serveur par défaut. Nous devons lui préciser où nous souhaitons les récupérer. Ici, openstreetmap.fr
 	    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
-		    // Il est toujours bien de laisser le lien vers la source des données
 		    attribution: 'données © <a href="//osm.org/copyright">OpenStreetMap</a>/ODbL - rendu <a href="//openstreetmap.fr">OSM France</a>',
 		        minZoom: 1,
 		        maxZoom: 20
 		    }).addTo(macarte);
+		
+		// add the trip
+		if (pointers.length >= 4) {
+			/*L.Routing.control({
+			    waypoints: [
+			        L.latLng(pointers[0][0], pointers[0][1]),
+			        L.latLng(pointers[1][0], pointers[1][1]),
+			        L.latLng(pointers[2][0], pointers[2][1]),
+			        L.latLng(pointers[3][0], pointers[3][1])
+			    ],
+			    routeWhileDragging: false
+			}).addTo(map);*/
+		}
 	}
 }
 
@@ -248,6 +338,13 @@ function addRemoveTypeTransport(element, name){
 	
 	// change l'image de l'element
 	
+}
+
+function addTrip(begin){   // begin : bool
+	
+	control_begin_pointer = begin;
+	control_end_pointer = !begin;
+		
 }
 
 //window.onload = function(){

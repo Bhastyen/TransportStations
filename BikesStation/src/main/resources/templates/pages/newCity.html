@@ -3,17 +3,19 @@
 
 <head>
 	<meta charset="ISO-8859-1"/>
-	<title>Add new city</title>
+	<title>Bike Station App</title>
 	<link rel="stylesheet" href="../../../css/new_city.css" th:href="@{/css/new_city.css}" />
 </head>
 
 <body>
+	 <script type="text/javascript" src="../../../js/city_manager.js" th:href="@{/js/city_manager.js}"> </script>
+	 
 	 <form action ="/newCity" method="POST">
 	 
-	 	 <p class="title"> Bike </p>
+	 	 <p class="title"> Add Bike Stations</p>
 	 
 	     <p>Name</p>
-   		 <input type="text" class="nameCity" name="nameCity"/>
+   		 <input type="text" class="nameCity" name="nameCity" required/>
    		 
 	 	 <p>Static Link</p>
    		 <input type="text" class="staticLink" name="staticLink" required/>
@@ -22,7 +24,8 @@
    		 <input type="text" class="dynamicLink" name="dynamicLink" required/>
 
          <p>Wikidata </p>
-   		 <input type="text" class="wikidataCity" name="wikidataCity"/>
+   		 <input type="text" class="wikidataCity" name="wikidataCity" required/>
+   		 
 	 	 <!-- label for="type"> Type :
 			<select id="type" name="type">
 			  <option value="Bike"> Bike </option>
@@ -34,6 +37,8 @@
 
   		 <input type="submit" id="add_city" value="Ajouter"/>
 	 </form>
+	 
+	 <script th:if="${error}" th:inline="javascript"> showNewCityError(/*[[${error}]]*/); </script>
 </body>
 
 </html>
