@@ -59,7 +59,7 @@
 					<div id="select_bus" th:onclick="addRemoveTypeTransport(this, 'Bus'); refreshStationFilter(/*[[${CityChoose}]]*/);">
 						<img alt="Bus" src="../../../css/images/icon-bus.png" th:href="@{/css/images/icon-bus.png}">
 					</div-->
-					<div th:if="${CityChoose}" id="select_begin" th:onclick="addTrip(this);">
+					<div th:if="${CityChoose}" id="select_begin" th:onclick="addTrip(true);">
 						<img alt="Bus" src="../../../css/images/icon-bus.png" th:href="@{/css/images/icon-bus.png}">
 					</div>
 				</div>
@@ -69,7 +69,7 @@
 				</div>
 				
 				<div id="transport2_container">
-					<div th:if="${CityChoose}" id="select_end" th:onclick="addTrip(this);">
+					<div th:if="${CityChoose}" id="select_end" th:onclick="addTrip(false);">
 						<img alt="Train" src="../../../css/images/icon-train.png" th:href="@{/css/images/icon-train.png}">
 					</div>
 					<!-- div id="select_subway" th:onclick="addRemoveTypeTransport(this, 'Subway'); refreshStationFilter(/*[[${CityChoose}]]*/);">

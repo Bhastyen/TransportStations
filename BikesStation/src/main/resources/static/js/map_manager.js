@@ -42,13 +42,13 @@ function initMap(cities, latc, lonc, zoom) {
     	
     	if (control_begin_pointer) {
 	        var popLocation = e.latlng;
-	    	addPointeur(popLocation, true);
+	    	addPointer(popLocation, true);
 	    	refreshStationFilter(cityToShow);
     	}
     	
     	if (control_end_pointer) {
 	        var popLocation = e.latlng;
-	    	addPointeur(popLocation, false);
+	    	addPointer(popLocation, false);
 	    	refreshStationFilter(cityToShow);
     	}
     });
@@ -57,24 +57,32 @@ function initMap(cities, latc, lonc, zoom) {
 function addPointer(newLocation, begin) {
 	var locStation = nearestStation(newLocation); // compute the nearest station
 	
-	if (begin && pointers.length < 2) {
-		pointers.push(popLocation);
-	    pointers.push(locStation);
+	if (begin && pointers.length < 4) {
+		pointers.push(newLocation.lat);
+		pointers.push(newLocation.lng);
+	    pointers.push(locStation.lat);
+	    pointers.push(locStation.lg);
 	}
 
-	if (begin && pointers.length >= 4) {
-		pointers[0] = popLocation;
-		pointers[1] = locStation;
+	if (begin && pointers.length >= 8) {
+		pointers[0] = newLocation.lat;
+		pointers[1] = newLocation.lng;
+		pointers[2] = locStation.lat;
+		pointers[3] = locStation.lg;
 	}
 	
-	if (!begin && pointers.length < 4) {	
-		pointers.push(popLocation);
-	    pointers.push(locStation);
+	if (!begin && pointers.length < 8) {
+		pointers.push(newLocation.lat);
+		pointers.push(newLocation.lng);
+	    pointers.push(locStation.lat);
+	    pointers.push(locStation.lg);
 	}
 
-	if (!begin && pointers.length >= 4) {
-		pointers[2] = popLocation;
-		pointers[3] = locStation;
+	if (!begin && pointers.length >= 8) {
+		pointers[4] = newLocation.lat;
+		pointers[5] = newLocation.lng;
+		pointers[6] = locStation.lat;
+		pointers[7] = locStation.lg;
 	}
 	
     // "close" the button to add a pointer
@@ -87,15 +95,15 @@ function nearestStation(newLocation) {
 	var st;
 	var dist1, dist2;
 	
-	for (var i = 0; i < city.bikesStations.length; i++){
-		st = city.bikesStations[i];
+	for (var i = 0; i < cityToShow.bikesStations.length; i++){
+		st = cityToShow.bikesStations[i];
 		
 		if (nearest != null){
-			dist1 = Math.sqrt((st.localisation.lat - newLocation[0]) * (st.localisation.lat - newLocation[0]) + (st.localisation.lg - newLocation[1]) * (st.localisation.lg - newLocation[1]));  
-			dist2 = Math.sqrt((nearest.lat - newLocation[0]) * (nearest.lat - newLocation[0]) + (nearest.lg - newLocation[1]) * (nearest.lg - newLocation[1]));  
+			dist1 = Math.sqrt((st.localisation.lat - newLocation.lat) * (st.localisation.lat - newLocation.lat) + (st.localisation.lg - newLocation.lng) * (st.localisation.lg - newLocation.lng));  
+			dist2 = Math.sqrt((nearest.lat - newLocation.lat) * (nearest.lat - newLocation.lat) + (nearest.lg - newLocation.lng) * (nearest.lg - newLocation.lng));  
 			
-			console.log("Dist1 " + dist1);
-			console.log("Dist2 " + dist2);
+			//console.log("Dist1 " + dist1);
+			//console.log("Dist2 " + dist2);
 			
 			if (dist1 < dist2) {
 				nearest = st.localisation;
@@ -125,7 +133,7 @@ function reinitMap(lastLoc){
 	
 
 	// positionnement de la carte sur la ville
-    //macarte.setView([lat, lon], 12);
+    //macarte.setView([lat, lon], 13);
 	id = setInterval(dezoomMap, time);
 	
 	// fonction d'animation du zoom
@@ -187,19 +195,9 @@ function goToCity(city){   // type : City
 
 function changeCity(locCityDep, cityArr){   // type : localisationCity, City
 	inc = 0; len = 0; zoom = false;
-	pos = [0, 0];
-	dir = [0, 0];
-
-	// calcul direction du deplacement
-	len = Math.sqrt((cityArr.localisation.lat - locCityDep.lat) * (cityArr.localisation.lat - locCityDep.lat) + 
-			(cityArr.localisation.lg - locCityDep.lg) * (cityArr.localisation.lg - locCityDep.lg));
 	
-	dir[0] = (cityArr.localisation.lat - locCityDep.lat) / len;
-	dir[1] = (cityArr.localisation.lg - locCityDep.lg) / len;
-	
-	// calul de la position de depart
-	pos[0] = locCityDep.lat;
-	pos[1] = locCityDep.lg;
+	// position de depart
+	var pos = [locCityDep.lat, locCityDep.lg];
 	
 	// creation de l'animation
 	id = setInterval(moveMap, 400);
@@ -221,11 +219,6 @@ function changeCity(locCityDep, cityArr){   // type : localisationCity, City
 		    macarte.setView(pos, 12 - inc * 3);
 		}else if (zoom){
 		    inc += 1;
-			
-			// calul de la nouvelle position
-			//pos[0] = pos[0] + dir[0];
-			//pos[1] = pos[1] + dir[1];
-			
 		    macarte.setView([cityArr.localisation.lat, cityArr.localisation.lg], 7 + inc * 3);
 		}
 	}
@@ -251,34 +244,11 @@ function createPopup(city){
 function stationFilter(city, field){
 	
 	if(city != null){
-		
 		// change la valeur de la recherche
 		search = field.value.toLowerCase();
 		
 		// reinitialise la carte
-		if (macarte != null){
-			macarte.off();
-			macarte.remove();
-		}
-	
-	    // Creer l'objet "macarte" et l'inserer dans l'element HTML qui a l'ID "map"
-	    macarte = L.map('map').setView([city.localisation.lat, city.localisation.lg], 12);
-		
-	    // ajout des marqueurs pertinant
-		for (var i = 0; i < city.bikesStations.length; i++){
-			var st = city.bikesStations[i];
-			var name = st.name.toLowerCase();
-			if ((st.localisation.lat != 0 || st.localisation.lg != 0) && name.includes(search)){
-		    	var marker = L.marker([st.localisation.lat, st.localisation.lg]).addTo(macarte);
-		    	marker.bindPopup(st.name);
-			}
-		}
-	    
-	    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
-		    attribution: 'données © <a href="//osm.org/copyright">OpenStreetMap</a>/ODbL - rendu <a href="//openstreetmap.fr">OSM France</a>',
-		        minZoom: 1,
-		        maxZoom: 20
-		    }).addTo(macarte);
+		refreshStationFilter(city);
 	}
 }
 
@@ -292,7 +262,7 @@ function refreshStationFilter(city){
 		}
 	
 	    // Creer l'objet "macarte" et l'inserer dans l'element HTML qui a l'ID "map"
-	    macarte = L.map('map').setView([city.localisation.lat, city.localisation.lg], 12);
+	    macarte = L.map('map').setView([city.localisation.lat, city.localisation.lg], 13);
 		
 	    // ajout des marqueurs pertinant
 		for (var i = 0; i < city.bikesStations.length; i++){
@@ -309,19 +279,36 @@ function refreshStationFilter(city){
 		        minZoom: 1,
 		        maxZoom: 20
 		    }).addTo(macarte);
+	    
+	    // add marker when a user click on the map
+	    macarte.on('click', function(e) {
+	    	
+	    	if (control_begin_pointer) {
+		        var popLocation = e.latlng;
+		    	addPointer(popLocation, true);
+		    	refreshStationFilter(cityToShow);
+	    	}
+	    	
+	    	if (control_end_pointer) {
+		        var popLocation = e.latlng;
+		    	addPointer(popLocation, false);
+		    	refreshStationFilter(cityToShow);
+	    	}
+	    });
 		
 		// add the trip
-		if (pointers.length >= 4) {
-			/*L.Routing.control({
+		if (pointers.length >= 8) {
+			L.Routing.control({
 			    waypoints: [
-			        L.latLng(pointers[0][0], pointers[0][1]),
-			        L.latLng(pointers[1][0], pointers[1][1]),
-			        L.latLng(pointers[2][0], pointers[2][1]),
-			        L.latLng(pointers[3][0], pointers[3][1])
+			        L.latLng(pointers[0], pointers[1]),
+			        L.latLng(pointers[2], pointers[3]),
+			        L.latLng(pointers[4], pointers[5]),
+			        L.latLng(pointers[6], pointers[7])
 			    ],
 			    routeWhileDragging: false,
+			    useZoomParameter: false,
         		router: L.Routing.graphHopper('62fcb6e5-14d3-4ac6-b64c-65eb9bcbb803')
-			}).addTo(map);*/
+			}).addTo(macarte);
 		}
 	}
 }
