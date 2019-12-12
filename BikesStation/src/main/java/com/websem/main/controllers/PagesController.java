@@ -3,6 +3,7 @@ package com.websem.main.controllers;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.io.OutputStream;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -42,6 +43,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -56,13 +59,27 @@ import com.websem.main.models.HistoriqueStation;
 import com.websem.main.models.JsonReader;
 import com.websem.main.models.LocalisationCity;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 
 @Controller
 public class PagesController {
 	public static final int ECART_UPDATE = 600;
 	private static final int TAILLE_MAX_HISTORIQUE = 4;
-	
+	//TODO
+	//Integration dynamique a la carte
+	//Cluster markers
+	//Itineraire clique relier avec station les plus proches
+
+	//XML pour les stations
+	//Faire les bus
+	//Prise voitures electrique
+	//Tourisme
+
+	//Rdfa bus
+
 	@GetMapping("/")
 	public String home(@RequestParam(required = false) String city, ModelMap modelMap) {
 		List<City> cities = listCity();
@@ -81,17 +98,17 @@ public class PagesController {
 	public String promptStationCity(@RequestParam("city") String name, @RequestParam(required=false) String lastCity, ModelMap modelMap) throws JSONException, IOException{
 		List<City> cities = listCity();
 		City cityChoose = cityStation(name);
-		
-    	modelMap.put("Cities", listCity());
-    	modelMap.put("CityChoose", cityChoose);
 
-    	// donne la derniere localisation visitee
-    	if (lastCity != null && !lastCity.isEmpty()) {
-    		modelMap.put("lastLocCity", getCityWithName(lastCity, cities).getLocalisation());
-    	}
-    	
-        // update dynamic with city name
-    	UpdateCity(cityChoose);
+		modelMap.put("Cities", listCity());
+		modelMap.put("CityChoose", cityChoose);
+
+		// donne la derniere localisation visitee
+		if (lastCity != null && !lastCity.isEmpty()) {
+			modelMap.put("lastLocCity", getCityWithName(lastCity, cities).getLocalisation());
+		}
+
+		// update dynamic with city name
+		UpdateCity(cityChoose);
 
 		//TODO update dynamic with city name
 		UpdateCity(getCityWithName(name, cities));
@@ -111,12 +128,12 @@ public class PagesController {
 
 		String adresseDynamique = city.getDynamicLink();
 		String name = city.getName();
-	
+
 		total = System.currentTimeMillis();
-		
+
 		// Recupere l'update le plus jeune / vieux et le nombre total d'update
 		informationsUpdate = getLastsUpdate(name);
-		
+
 		// Recupere JSON sur site Dynamique
 		begin = System.currentTimeMillis();
 		json = JsonReader.readJsonFromUrl(adresseDynamique);
@@ -132,22 +149,22 @@ public class PagesController {
 
 		// informationsUpdate.add(listStations.findValue(champsJson.get("lastUpdate")).asInt());
 		informationsUpdate.add((int) (System.currentTimeMillis()/1000));
-		
+
 		// Update des donnees , connection a la base
 		conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/update");
-		
+
 		// Suppression de l'update le plus ancien . limite de 10 pour les velo
 		updateDelete(informationsUpdate,conn,name);
-		
+
 		// Insertion du nouvelle historique pour les velo
 		begin = System.currentTimeMillis();
 		updateInsert(informationsUpdate,conn,name,listStations ,champsJson);
 		end = System.currentTimeMillis();
 		System.out.println("Update Insert Time : " + ((double) (end - begin) / 1000.0));
 		System.out.println("Total Time to Update : " + ((double) (end - total) / 1000.0));
-			
+
 		conn.close();
-		
+
 		//TODO ?? Selon les donnees (france , amerique) les noms differe , parser avec jsonObject
 		//et Jackson trop specifique https://www.mkyong.com/java/jackson-convert-json-array-string-to-list/
 	}
@@ -187,7 +204,7 @@ public class PagesController {
 			qs = rs.next();
 
 			int lu = qs.getLiteral("lastupdate").getInt();
-			
+
 			if (i == 1) {
 				olderLastUpdate= lu;
 			} else {
@@ -199,15 +216,15 @@ public class PagesController {
 
 		qExec.close();
 		conn.close();
-		
+
 		lastsUpdate.add(youngLastUpdate);
 		lastsUpdate.add(olderLastUpdate);
 		lastsUpdate.add(nombreUpdate);
 
 		return lastsUpdate;
-	
+
 	}
-	
+
 	private void updateDelete(ArrayList<Integer> informationsUpdate,RDFConnection conn,String name) {
 		int youngLastUpdate = informationsUpdate.get(0);
 		int olderLastUpdate = informationsUpdate.get(1);
@@ -245,13 +262,13 @@ public class PagesController {
 					);
 		}
 	}
-	
+
 	private void updateInsert(ArrayList<Integer> informationsUpdate, RDFConnection conn, String name, JsonNode listStations, HashMap<String, String> champsJson) {
 		UpdateRequest up = new UpdateRequest();
 		int lastUpdate = informationsUpdate.get(3);
 		String path = champsJson.get("stationParentNode");
-		
-	 	listStations = listStations.findValue(path.substring(path.lastIndexOf('.') + 1));
+
+		listStations = listStations.findValue(path.substring(path.lastIndexOf('.') + 1));
 
 		for (JsonNode jsonNode: listStations) {
 			String idStation = jsonNode.findValue(champsJson.get("stationId")).asText();
@@ -278,34 +295,38 @@ public class PagesController {
 					"FILTER (str(?id) = \"" + idStation + "\" )"
 					+ "}");
 		}
-		
+
 		conn.update(up);
 	}
 
 	private static HashMap<String,String> researchsTermesBike(List<List<String>> listTermes,JsonNode treeJson) {
 		//Ordre 
 		HashMap<String, String> champsJson = new HashMap<String,String>();; //Champs , Champs trouver dans le Json
+		Boolean result = true;
 		InitialisationCheckValueBikeStation(listTermes);
 
 		for (List<String> list : listTermes) {
-			researchTermes(list, champsJson, treeJson);
+			result =researchTermes(list, champsJson, treeJson);
+			
 		}
-
+		if(result==false) {
+			return null;
+		}
 		return champsJson;
 	}
 
-	private static void researchTermes(List<String> list,HashMap<String,String> champsJson,JsonNode treeJson) {
+	private static Boolean researchTermes(List<String> list,HashMap<String,String> champsJson,JsonNode treeJson) {
 		int i = 0;
 		Boolean b = false;
 		String champs = list.get(0), path;
 
 		if(champs.equals("stationParentNode")) {
 			for (String terme : list) {
-	
+
 				if(treeJson.findValue(terme) != null) {
 					JsonNode node = treeJson.findValue(terme);
 					String g = "";
-	
+
 					/*System.out.println("Find terme data  " + terme);
 						System.out.println("Find terme data findpath " + treeJson.findPath(terme).asText());
 						System.out.println("Find terme data path " + treeJson.path(terme).asText());
@@ -313,23 +334,23 @@ public class PagesController {
 						System.out.println("Find terme data  b" + treeJson.findValues(terme));
 						System.out.println("Find terme data c" + treeJson.findPath(terme));
 						System.out.println("Find terme data d" + treeJson.findParents(terme));*/
-	
+
 					//String value = JSONDataReader.getStringValue(jPath, jsonData);
 					//champs = ;
-	
+
 					path = getPathListStation(treeJson, terme);
 					System.out.println("Path : " + path);
 					champsJson.put(champs, path);
 					b = true;
 					break;
 				}
-	
+
 				i++;
 			}
 		} else {
 
 			for (String terme : list) {
-	
+
 				if (treeJson.findValue(terme) != null) {
 					System.out.println("Find terme " + terme);
 					champsJson.put(champs, terme);
@@ -338,22 +359,24 @@ public class PagesController {
 				}
 				i++;
 			}
-	
-			if (b == false) {
-				champsJson.put(champs, champs);
-			}
-		}
 
+			if (b == false) {
+				champsJson.put(champs, null);
+
+			}
+
+		}
+		return b;
 	}
-	
+
 	private static String getPathListStation(JsonNode tree, String term) {
 		Iterator<Entry<String, JsonNode>> ite = tree.fields();
 		Entry<String, JsonNode> next;
 		String test;
-		
+
 		while (ite.hasNext()) {
 			next = ite.next();
-			
+
 			if (next.getKey().equals(term)) {
 				System.out.println("Node : " + next.getKey() + "  " + term);
 				return next.getKey();
@@ -363,7 +386,7 @@ public class PagesController {
 			if (test != null)
 				return next.getKey() + "." + test;
 		}
-		
+
 		return null;
 	}
 
@@ -375,106 +398,130 @@ public class PagesController {
 
 
 	@RequestMapping(value="/newCity", method = RequestMethod.POST)
-	public String newCity(@RequestParam(required = true) String nameCity, String staticLink, String dynamicLink, String wikidataCity, ModelMap model) throws JSONException, IOException {
-    	URI staticL = null, dynamicL = null;
-    	
-    	try {
-    		staticL = new URI(staticLink);
-    		dynamicL = new URI(dynamicLink);
-    	}catch (URISyntaxException e) {
-    		System.out.println("URI incorrecte : " + staticLink + "  " + dynamicLink);
+	public String newCity(@RequestParam(required = true) String nameCity, String staticLink, String dynamicLink, String wikidataCity, ModelMap model,String formatFichier) throws JSONException, IOException, ParserConfigurationException, SAXException {
+		URI staticL = null, dynamicL = null;
+
+		try {
+			staticL = new URI(staticLink);
+			dynamicL = new URI(dynamicLink);
+		}catch (URISyntaxException e) {
+			System.out.println("URI incorrecte : " + staticLink + "  " + dynamicLink);
 		}
-    	
-    	// on ne traite la demande que si on a une uri
-    	if (staticL != null && dynamicL != null) {
+
+		// on ne traite la demande que si on a une uri
+		if (staticL != null && dynamicL != null) {
 			//List pour determiner quels sont les indices des differentes liste ci-dessous qui sont viable pour inserer une nouvelle ville
 			List<Integer> indicesList  = new ArrayList<Integer>();
 			List<List<String>> listTermes = new ArrayList<List<String>>();//ORDRE stationParentNode,stationId,stationName,stationLat,stationLon,stationCapacity);
 			HashMap<String, String> champsJson;
+			HashMap<String, String> champs;
 
-			//Arbre Json du dynamique , sert a trouver les termes viable pour inserer une nouvelle ville
-			JSONObject json = JsonReader.readJsonFromUrl(staticLink);
-			//Creation Arbre pour analyser le Json
-			ObjectMapper mapper = new ObjectMapper();
-			JsonNode listStations = mapper.readTree(json.toString());
+			//CAS XML
+			if(formatFichier.equals("XML")) {
+				final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+				final DocumentBuilder builder = factory.newDocumentBuilder();
+				final Document document= builder.parse(new URL(staticLink).openStream());
+
+				InitialisationCheckValueBikeStation(listTermes);
+				champs =researchsTermesBike(listTermes, document);
+				//CAS JSON
+			}else if(formatFichier.equals("JSON")) {
+				//Arbre Json du dynamique , sert a trouver les termes viable pour inserer une nouvelle ville
+				JSONObject json = JsonReader.readJsonFromUrl(staticLink);
+				//Creation Arbre pour analyser le Json
+				ObjectMapper mapper = new ObjectMapper();
+				JsonNode listStations = mapper.readTree(json.toString());
 
 
-			//ORDRE [0]stationParentNode,[1]stationId,[2]stationName [3]StationLat [4]StationLon [5]StationCapacity [6]bikesAvailable [7]docksAvailable
+				//ORDRE [0]stationParentNode,[1]stationId,[2]stationName [3]StationLat [4]StationLon [5]StationCapacity [6]bikesAvailable [7]docksAvailable
 
 
-			//Determiner les parametres
-			champsJson = researchsTermesBike(listTermes,listStations);
-			System.out.println("Id Lon : " + champsJson.get("stationLon"));
-			/*System.out.println(champsJson.get("stationParentNode"));
-			System.out.println(champsJson.get("stationId"));
-			System.out.println(champsJson.get("stationName"));
-			System.out.println(champsJson.get("stationLat"));
-			System.out.println(champsJson.get("stationLon"));
-			System.out.println(champsJson.get("stationCapacity"));*/
+				//Determiner les parametres
+				champsJson = researchsTermesBike(listTermes,listStations);
+				System.out.println("Id Lon : " + champsJson.get("stationLon"));
+				/*System.out.println(champsJson.get("stationParentNode"));
+				System.out.println(champsJson.get("stationId"));
+				System.out.println(champsJson.get("stationName"));
+				System.out.println(champsJson.get("stationLat"));
+				System.out.println(champsJson.get("stationLon"));
+				System.out.println(champsJson.get("stationCapacity"));*/
 
-			// Parser le Json pour le transformer en RDF
-			SPARQLGenerateQuery query = (SPARQLGenerateQuery) QueryFactory.create("PREFIX ite: <http://w3id.org/sparql-generate/iter/>"
-					+" PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>"
-					+" PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>"
-					+" PREFIX exVoc: <http://www.ex-city.com/>"
-					+" PREFIX ex: <http://example.org/>"
-					+" PREFIX ns0: <http://semanticweb.org/ontologies/City#> "
-					+" PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos> "
-					+" PREFIX iter: <http://w3id.org/sparql-generate/iter/>"
-					+" PREFIX fun: <http://w3id.org/sparql-generate/fn/>"
+				// Parser le Json pour le transformer en RDF
+				SPARQLGenerateQuery query = (SPARQLGenerateQuery) QueryFactory.create("PREFIX ite: <http://w3id.org/sparql-generate/iter/>"
+						+" PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>"
+						+" PREFIX crm: <http://www.cidoc-crm.org/cidoc-crm/>"
+						+" PREFIX exVoc: <http://www.ex-city.com/>"
+						+" PREFIX ex: <http://example.org/>"
+						+" PREFIX ns0: <http://semanticweb.org/ontologies/City#> "
+						+" PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos> "
+						+" PREFIX iter: <http://w3id.org/sparql-generate/iter/>"
+						+" PREFIX fun: <http://w3id.org/sparql-generate/fn/>"
 
-	                    +" GENERATE { "
-	                    +" <"+wikidataCity+"> a ns0:City;"
-	                    +"  ns0:CityPublicTransport _:ns;"
-	                    +"                ns0:CityName \""+nameCity+"\";"
-	                    +"                ns0:LienDonneesDynamique <"+dynamicLink+">."
-	                    +"  _:ns a ns0:CityBikeStation ;"
-	                    +"   ns0:StationId ?stationId;"
-	                    +"   ns0:Stationname ?name;"
-	                    +"   ns0:StationLocalisation [ "
-	                    +" ns1:lat ?lat;"
-	                    +"  ns1:long ?lon;"
-	                    +"   ] ;"
-	                    +"  ns0:StationTotalcapacity ?capacity;"
-	                    +"  ns0:StationHistorique []."
-	                    +" }"
-	                    +" SOURCE <"+staticLink+"> AS ?chemin"
-	                    +" ITERATOR ite:JSONPath(?chemin, \"" + champsJson.get("stationParentNode") + ".*\") AS ?source"
-	                    +" WHERE{"
-	                    +" BIND(STR((fun:JSONPath(?source,\"." + champsJson.get("stationId") + "\"))) AS ?stationId)"
-	                    +" BIND(STR((fun:JSONPath(?source,\"$."+ champsJson.get("stationName") + "\"))) AS ?name)"
-	                    +" BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationLat") + "\"))) AS ?lat) "
-	                    +"  BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationLon") + "\"))) AS ?lon)"
-	                    +"  BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationCapacity") + "\"))) AS ?capacity) "
-	                    +" }"
-	                    , SPARQLGenerate.SYNTAX);
+		                    +" GENERATE { "
+		                    +" <"+wikidataCity+"> a ns0:City;"
+		                    +"  ns0:CityPublicTransport _:ns;"
+		                    +"                ns0:CityName \""+nameCity+"\";"
+		                    +"                ns0:LienDonneesDynamique <"+dynamicLink+">."
+		                    +"  _:ns a ns0:CityBikeStation ;"
+		                    +"   ns0:StationId ?stationId;"
+		                    +"   ns0:Stationname ?name;"
+		                    +"   ns0:StationLocalisation [ "
+		                    +" ns1:lat ?lat;"
+		                    +"  ns1:long ?lon;"
+		                    +"   ] ;"
+		                    +"  ns0:StationTotalcapacity ?capacity;"
+		                    +"  ns0:StationHistorique []."
+		                    +" }"
+		                    +" SOURCE <"+staticLink+"> AS ?chemin"
+		                    +" ITERATOR ite:JSONPath(?chemin, \"" + champsJson.get("stationParentNode") + ".*\") AS ?source"
+		                    +" WHERE{"
+		                    +" BIND(STR((fun:JSONPath(?source,\"." + champsJson.get("stationId") + "\"))) AS ?stationId)"
+		                    +" BIND(STR((fun:JSONPath(?source,\"$."+ champsJson.get("stationName") + "\"))) AS ?name)"
+		                    +" BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationLat") + "\"))) AS ?lat) "
+		                    +"  BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationLon") + "\"))) AS ?lon)"
+		                    +"  BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationCapacity") + "\"))) AS ?capacity) "
+		                    +" }"
+		                    , SPARQLGenerate.SYNTAX);
 
-			RootPlan plan = PlanFactory.create(query);
+				RootPlan plan = PlanFactory.create(query);
 
-			Model m = plan.exec();
+				Model m = plan.exec();
 
-			// Put le RDF obtenu dans fuseki
-			RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/");	 
-			conn.load(m);
-			conn.close();
+				// Put le RDF obtenu dans fuseki
+				RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/");	 
+				conn.load(m);
+				conn.close();
 
-			// TODO https://www.w3.org/TR/2013/REC-sparql11-update-20130321/#updateLanguage
+				// TODO https://www.w3.org/TR/2013/REC-sparql11-update-20130321/#updateLanguage
+
+			}else if(formatFichier.equals("CSV")) {
+
+			}
 		}
 
 		return "redirect:" + "/";
 	}
+
+	private HashMap<String, String> researchsTermesBike(List<List<String>> listTermes, Document document) {
+		// TODO Auto-generated method stub
+		for (List<String> list : listTermes) {
+
+		}
+		return null;
+	}
+
 
 	private static void InitialisationCheckValueBikeStation(List<List<String>> listTermes) { 
 		//ORDRE [0]stationParentNode,[1]stationId,[2]stationName [3]StationLat [4]StationLon [5]StationCapacity [6]bikesAvailable [7]docksAvailable
 		//Listes de termes a checker pour pouvoir construire le turtle
 		List<String> stationParentNode = new ArrayList<String>(Arrays.asList("stationParentNode", "stations", "stationBeanList","properties")) ;
 		List<String> stationId = new ArrayList<String>(Arrays.asList("stationId", "station_id", "id","number")) ;
-		List<String> stationName = new ArrayList<String>(Arrays.asList("stationName","name","s")) ;
+		List<String> stationName = new ArrayList<String>(Arrays.asList("stationName","name","s","na")) ;
 		List<String> stationLat = new ArrayList<String>(Arrays.asList("stationLat","lat","latitude","la")) ;
 		List<String> stationLon = new ArrayList<String>(Arrays.asList("stationLon","lon","longitude","lg","long","lo")) ;
-		List<String> stationCapacity = new ArrayList<String>(Arrays.asList("stationCapacity","capacity")) ;
-		List<String> bikesAvailable = new ArrayList<String>(Arrays.asList("bikesAvailable","num_bikes_available","bikes_available","numBikesAvailable","ba","availableBikes")) ;
-		List<String> docksAvailable = new ArrayList<String>(Arrays.asList("docksAvailable","num_docks_available","docks_available","numDocksAvailable","da","availableDocks")) ;
+		List<String> stationCapacity = new ArrayList<String>(Arrays.asList("stationCapacity","capacity","to")) ;
+		List<String> bikesAvailable = new ArrayList<String>(Arrays.asList("bikesAvailable","num_bikes_available","bikes_available","numBikesAvailable","ba","availableBikes","av")) ;
+		List<String> docksAvailable = new ArrayList<String>(Arrays.asList("docksAvailable","num_docks_available","docks_available","numDocksAvailable","da","availableDocks","fr")) ;
 		List<String> lastUpdate = new ArrayList<String>(Arrays.asList("lastUpdate","last_updated","lastUpdate","lastUpdatedOther","lu"));
 		//Liste de list de termes
 
@@ -523,45 +570,45 @@ public class PagesController {
 
 		return  listCity;
 	}
-    
-    private static City cityStation(String nameCity){
-        City city = new City(nameCity, new LocalisationCity(0,  0));
-        float avgLat = 0; float avgLon = 0;
-        int nbStation = 0;
-        //System.out.println("name City " + nameCity);
-        
-        RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/query");
-        QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos> "
-        		+ "SELECT ?City ?name ?s ?link ?stationId ?lat ?lon ?capacity "
-        		+ "WHERE { ?s a ns0:City ; "
-        			+ " ns0:CityName ?nameCity ; "
-	        		+ " ns0:LienDonneesDynamique ?link ; "
-	        		+ " ns0:CityPublicTransport _:ns. "
-        		+ " _:ns a ns0:CityBikeStation; "
-	        		+ "ns0:StationId ?stationId; "
-	        		+ "ns0:Stationname ?name; "
-	        		+ "ns0:StationLocalisation [ns1:lat ?lat; ns1:long ?lon;] ;"
-	        		+ "ns0:StationTotalcapacity ?capacity. "
-        		+ "FILTER (str(?nameCity) = \"" + nameCity + "\" ) }");
-        ResultSet rs = qExec.execSelect();
 
-        //Recuperation des noms des villes pour afficher la liste
-        while(rs.hasNext()) {
-            QuerySolution qs = rs.next();
-            
-            LocalisationCity localisationCity = new LocalisationCity(qs.getLiteral("lat").getFloat(),qs.getLiteral("lon").getFloat());
-            List<HistoriqueStation> historiqueStationList = new ArrayList<HistoriqueStation>();
-            HistoriqueStation historiqueStation = new HistoriqueStation();
-            BikeStation bikeStation = new BikeStation(qs.getLiteral("stationId").getString(), 
-            		                                  qs.getLiteral("capacity").getString(),
-            		                                  qs.getLiteral("name").getString(),
-            		                                  localisationCity,
-            		                                  historiqueStationList);
-            city.addBikeStation(bikeStation);
-    	    city.setIRI(qs.getResource("s").getURI());
-    	    city.setDynamicLink(qs.getResource("link").getURI());
-    	    
-            /*System.out.println(qs.getLiteral("name"));
+	private static City cityStation(String nameCity){
+		City city = new City(nameCity, new LocalisationCity(0,  0));
+		float avgLat = 0; float avgLon = 0;
+		int nbStation = 0;
+		//System.out.println("name City " + nameCity);
+
+		RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/query");
+		QueryExecution qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> PREFIX ns1: <http://www.w3.org/2003/01/geo/wgs84_pos> "
+				+ "SELECT ?City ?name ?s ?link ?stationId ?lat ?lon ?capacity "
+				+ "WHERE { ?s a ns0:City ; "
+				+ " ns0:CityName ?nameCity ; "
+				+ " ns0:LienDonneesDynamique ?link ; "
+				+ " ns0:CityPublicTransport _:ns. "
+				+ " _:ns a ns0:CityBikeStation; "
+				+ "ns0:StationId ?stationId; "
+				+ "ns0:Stationname ?name; "
+				+ "ns0:StationLocalisation [ns1:lat ?lat; ns1:long ?lon;] ;"
+				+ "ns0:StationTotalcapacity ?capacity. "
+				+ "FILTER (str(?nameCity) = \"" + nameCity + "\" ) }");
+		ResultSet rs = qExec.execSelect();
+
+		//Recuperation des noms des villes pour afficher la liste
+		while(rs.hasNext()) {
+			QuerySolution qs = rs.next();
+
+			LocalisationCity localisationCity = new LocalisationCity(qs.getLiteral("lat").getFloat(),qs.getLiteral("lon").getFloat());
+			List<HistoriqueStation> historiqueStationList = new ArrayList<HistoriqueStation>();
+			HistoriqueStation historiqueStation = new HistoriqueStation();
+			BikeStation bikeStation = new BikeStation(qs.getLiteral("stationId").getString(), 
+					qs.getLiteral("capacity").getString(),
+					qs.getLiteral("name").getString(),
+					localisationCity,
+					historiqueStationList);
+			city.addBikeStation(bikeStation);
+			city.setIRI(qs.getResource("s").getURI());
+			city.setDynamicLink(qs.getResource("link").getURI());
+
+			/*System.out.println(qs.getLiteral("name"));
             System.out.println(qs.getLiteral("stationId"));
             System.out.println(qs.getLiteral("lat"));
             System.out.println(qs.getLiteral("lon"));*/

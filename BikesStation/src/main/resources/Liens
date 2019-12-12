@@ -30,4 +30,8 @@ Info Colombus https://www.wikidata.org/wiki/Q16567
 Static https://feeds.cogobikeshare.com/stations/stations.json
 Dynamic https://feeds.cogobikeshare.com/stations/stations.json
 
+///////XML//////
+Info Montpellier https://www.wikidata.org/wiki/Q6441
+Static https://data.montpellier3m.fr/sites/default/files/ressources/TAM_MMM_VELOMAG.xml
+Dynamimc https://data.montpellier3m.fr/sites/default/files/ressources/TAM_MMM_VELOMAG.xml
 Tourisme France https://www.data.gouv.fr/fr/datasets/r/f54efb27-a293-47f3-8470-ee013575ae19
