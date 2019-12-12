@@ -103,13 +103,19 @@ public class PagesController {
 		City cityChoose = cityStation(name), last;
 
 		// verifie si la ville a ete trouve dans city station
-		if (cityChoose == null)
+		if (cityChoose == null) {
+			modelMap.put("error","Une erreur est survenue : Stations non trouvées pour la ville de : \" "+name+ " \" dans la base de données");
 			return "pages/error";
+		}
 
 		// update dynamic avec la ville choisi
 		ok = UpdateCity(cityChoose);
 		if (!ok)  // si echec on envoie une erreur
+		{
+			modelMap.put("error","Une erreur est survenue : Update des données de la ville de : \" \"+name+ \" \" à échoué");
 			return "pages/error";
+		}
+			
 
 		// envoie donnees au client
 		modelMap.put("Cities", listCity());
@@ -231,7 +237,7 @@ public class PagesController {
                     +"    BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationCapacity") + "\"))) AS ?capacity) "
                     +" }"
                     , SPARQLGenerate.SYNTAX);
-
+		 //BIND(REPLACE(STR((fun:JSONPath(?source,\"$."+ champsJson.get("stationName") + "\")),\"[^A-Za-z0-9.]\",\" \")) AS ?name)
 		RootPlan plan = PlanFactory.create(query);
 
 		Model m = plan.exec();
@@ -575,7 +581,7 @@ public class PagesController {
 			stationName = new ArrayList<String>(Arrays.asList("stationName", "name", "s", "properties.name")) ;
 			stationLat = new ArrayList<String>(Arrays.asList("stationLat","lat","latitude","la","properties.lat")) ;
 			stationLon = new ArrayList<String>(Arrays.asList("stationLon","lon","longitude","lg","long","lo", "lng", "properties.lng")) ;
-			stationCapacity = new ArrayList<String>(Arrays.asList("stationCapacity","capacity","bike_stands","properties.bike_stands","totalDocks")) ;
+			stationCapacity = new ArrayList<String>(Arrays.asList("stationCapacity","capacity","bike_stands","properties.bike_stands","totalDocks","da")) ;
 		}else {
 			stationId = new ArrayList<String>(Arrays.asList("stationId", "station_id", "id", "number", "properties.number")) ;
 			bikesAvailable = new ArrayList<String>(Arrays.asList("bikesAvailable","num_bikes_available","bikes_available","numBikesAvailable","ba","availableBikes",

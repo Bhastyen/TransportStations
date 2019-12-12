@@ -1,0 +1,14 @@
+@charset "ISO-8859-1";
+
+
+body{
+	display:flex;
+}
+.center{
+	display: flex;
+	flex-direction: row;
+	
+	background: url(images/menubg.jpg);
+	
+	
+}

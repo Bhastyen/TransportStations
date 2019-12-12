@@ -4,10 +4,14 @@
 <head>
 	<meta charset="ISO-8859-1"/>
 	<title>Bike Station App</title>
+	<link rel="stylesheet" href="../../../css/new_city.css" th:href="@{/css/new_city.css}" />
 </head>
 
 <body>
-	<p> Attention problème! </p>
+	 <script type="text/javascript" src="../../../js/city_manager.js" th:href="@{/js/city_manager.js}"> </script>
+
+	
+	 <script th:if="${error}" th:inline="javascript"> showNewCityError(/*[[${error}]]*/); </script>
 </body>
 
 </html>
