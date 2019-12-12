@@ -44,6 +44,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -60,11 +62,25 @@ import com.websem.main.models.HistoriqueStation;
 import com.websem.main.models.JsonReader;
 import com.websem.main.models.LocalisationCity;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 @Controller
 public class PagesController {
 	public static final int ECART_UPDATE = 600;
 	private static final int TAILLE_MAX_HISTORIQUE = 4;
+	//TODO
+	//Integration dynamique a la carte
+	//Cluster markers
+	//Itineraire clique relier avec station les plus proches
+
+	//XML pour les stations
+	//Faire les bus
+	//Prise voitures electrique
+	//Tourisme
+
+	//Rdfa bus
 
 	@GetMapping("/")
 	public String home(@RequestParam(required = false) String city, ModelMap modelMap) {
@@ -85,7 +101,7 @@ public class PagesController {
 		boolean ok;
 		List<City> cities = listCity();
 		City cityChoose = cityStation(name), last;
-		
+
 		// verifie si la ville a ete trouve dans city station
 		if (cityChoose == null)
 			return "pages/error";
@@ -102,17 +118,17 @@ public class PagesController {
 		// donne la derniere localisation visitee
 		if (lastCity != null && !lastCity.isEmpty()) {
 			last = getCityWithName(lastCity, cities);
-				
+
 			// verifie si la ville a ete trouve
 			if (last == null)
 				return "pages/error";
-				
+
 			modelMap.put("lastLocCity", last.getLocalisation());
 		}
 
 		return "pages/index";
 	}
-	
+
 	@GetMapping("/newCity")
 	public String newCity(ModelMap model) {
 		// Envoyer vers la page newCity pour que l'utilisateur ajoute sa ville
@@ -136,7 +152,7 @@ public class PagesController {
 			model.put("error", "Erreur l'une des urls fourni n'est pas correcte.");
 			return "pages/newCity";
 		}
-			
+
 		// List pour determiner quels sont les indices des differentes liste ci-dessous qui sont viable pour inserer une nouvelle ville
 		List<Integer> indicesList  = new ArrayList<Integer>();
 		List<List<String>> listTermes = new ArrayList<List<String>>(); // ORDRE stationParentNode,stationId,stationName,stationLat,stationLon,stationCapacity);
@@ -146,7 +162,7 @@ public class PagesController {
 		JSONObject json = null;
 		ObjectMapper mapper = null;
 		JsonNode listStations = null;
-		
+
 		try {
 			// Arbre Json du dynamique , sert a trouver les termes viable pour inserer une nouvelle ville
 			json = JsonReader.readJsonFromUrl(staticLink);
@@ -161,7 +177,7 @@ public class PagesController {
 			model.put("error", "Erreur le fichier du lien n'est pas un json.");
 			return "pages/newCity";
 		}
-		
+
 		// ORDRE [0]stationParentNode,[1]stationId,[2]stationName [3]StationLat [4]StationLon [5]StationCapacity [6]bikesAvailable [7]docksAvailable
 		// Determiner les parametres
 		champsJson = researchsTermesBike(listTermes, listStations, true);  // create the base for this city so staticLink = true
@@ -169,7 +185,7 @@ public class PagesController {
 			model.put("error", "Erreur le format du fichier json n'est pas compatible.");
 			return "pages/newCity";
 		}
-		
+
 		/*System.out.println(champsJson.get("stationParentNode"));
 		System.out.println(champsJson.get("stationId"));
 		System.out.println(champsJson.get("stationName"));
@@ -178,7 +194,7 @@ public class PagesController {
 		System.out.println(champsJson.get("stationCapacity"));*/
 
 		System.out.println("Name " + champsJson.get("stationName"));
-		
+
 		// Parser le Json pour le transformer en RDF
 		SPARQLGenerateQuery query = (SPARQLGenerateQuery) QueryFactory.create("PREFIX ite: <http://w3id.org/sparql-generate/iter/> "
 				+" PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>"
@@ -221,10 +237,10 @@ public class PagesController {
 		Model m = plan.exec();
 
 		// met le RDF obtenu dans fuseki
-		RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/");	 
-		
+		RDFConnection conn = RDFConnectionFactory.connect("http://localhost:3030/Cities/");
+
 		conn.load(m);
-		
+
 		conn.close();
 
 		// update une premiere fois
@@ -233,7 +249,7 @@ public class PagesController {
 			model.put("error", "Erreur lors de la mise a jour des informations de la ville de " + nameCity + ".");
 			return "pages/newCity";
 		}
-		
+
 		// TODO https://www.w3.org/TR/2013/REC-sparql11-update-20130321/#updateLanguage
 		return "redirect:" + "/";
 	}
@@ -251,11 +267,11 @@ public class PagesController {
 		HashMap<String, String> champsJson;
 
 		ArrayList<Integer> informationsUpdate = new ArrayList<Integer>();
-		
+
 		// verifier l'adresse dynamique avant de chercher le fichier
 		if (city.getDynamicLink() == null || city.getDynamicLink().isEmpty())
 			return false;
-		
+
 		adresseDynamique = city.getDynamicLink();
 		name = city.getName();
 
@@ -263,7 +279,7 @@ public class PagesController {
 
 		// Recupere l'update le plus jeune / vieux et le nombre total d'update
 		informationsUpdate = getLastsUpdate(name);
-		
+
 		begin = System.currentTimeMillis();
 		try {
 			// Recupere JSON sur site Dynamique
@@ -274,7 +290,7 @@ public class PagesController {
 		} catch (JSONException | IOException e) {
 			System.err.println("Probleme lors de la lecture du json " + e.getMessage());
 		}
-		
+
 		end = System.currentTimeMillis();
 		System.out.println("Get json Time : " + ((double) (end - begin) / 1000.0));
 
@@ -282,9 +298,9 @@ public class PagesController {
 		if (json == null || mapper == null || listStations == null)
 			return false;
 
-		// Recherche des termes du Json pour pouvoir faire le update 
+		// Recherche des termes du Json pour pouvoir faire le update
 		champsJson = researchsTermesBike(listeTerme, listStations, false);  // update dynamic so staticLink = false
-		
+
 		if (champsJson == null)  // si pas de termes trouves pour parser on annule le update et on previent
 			return false;
 
@@ -305,13 +321,13 @@ public class PagesController {
 		if (!ok)   // si probleme lors de la mise a jour on avertit
 			return false;
 		end = System.currentTimeMillis();
-		
+
 		// pour connaitre le temps d'un update : peut etre long suivant la ville
 		System.out.println("Update Insert Time : " + ((double) (end - begin) / 1000.0));
 		System.out.println("Total Time to Update : " + ((double) (end - total) / 1000.0));
 
 		conn.close();
-		
+
 		return true;
 
 		//TODO ?? Selon les donnees (france , amerique) les noms differe , parser avec jsonObject
@@ -331,12 +347,12 @@ public class PagesController {
 		// Recuperation adresse des donnees dynamique
 		qExec = conn.query("PREFIX ns0: <http://semanticweb.org/ontologies/City#> "+
 				"SELECT DISTINCT ?lastupdate {"+
-				"?s ns0:CityName ?name ;" + 
-				"           ns0:CityPublicTransport ?n." + 
-				"        ?n a ns0:CityBikeStation; " + 
-				"             ns0:StationId ?id ;" + 
+				"?s ns0:CityName ?name ;" +
+				"           ns0:CityPublicTransport ?n." +
+				"        ?n a ns0:CityBikeStation; " +
+				"             ns0:StationId ?id ;" +
 				"             ns0:StationHistorique ?hs." +
-				"       ?hs ns0:StationState[" +       				
+				"       ?hs ns0:StationState[" +
 				"  ns0:Date ?lastupdate]" +
 				"        FILTER (str(?name) = \""+name+"\" )"
 				+ "}"
@@ -405,12 +421,12 @@ public class PagesController {
 				+"	            ?hs ns0:StationState ?s."
 				+"	  				         ?s ns0:BikeAvailable ?ba;"
 				+"	                            ns0:SlotAvailable ?sa;"
-				+"	                            ns0:Date ?ls"	
+				+"	                            ns0:Date ?ls"
 				+"             FILTER(str(?name) = \"" + name + "\")"
 				+"	           FILTER(?ls = " + updateDelete + ")}"
 					);
 		}
-		
+
 		return true;
 	}
 
@@ -423,21 +439,21 @@ public class PagesController {
 		String bike_available = champsJson.get("bikesAvailable");
 		String dock_available = champsJson.get("docksAvailable");
 		String bikeAvailable, slotAvailable, idStation;
-		
+
 		//System.out.println("Id : " + id + " Bike : " + bike_available + "  " + dock_available);
 
 		listStations = listStations.findValue(path.substring(path.lastIndexOf('.') + 1));
 
 		for (JsonNode jsonNode: listStations) {
-			
+
 			if (jsonNode.findValue(id) != null)   // si l'id n'est pas trouve dans le fichier on envoit une erreur
 				idStation = jsonNode.findValue(id).asText();
 			else return false;
-			
+
 			if (jsonNode.findValue(bike_available) != null)   // mets des valeurs par defaut si besoin
 				bikeAvailable = jsonNode.findValue(bike_available).asText();
 			else bikeAvailable = "0";
-			
+
 			if (jsonNode.findValue(bike_available) != null)   // mets des valeurs par defaut si besoin
 				slotAvailable = jsonNode.findValue(dock_available).asText();
 			else slotAvailable = "0";
@@ -464,7 +480,7 @@ public class PagesController {
 		}
 
 		conn.update(up);
-		
+
 		return true;
 	}
 
@@ -476,14 +492,13 @@ public class PagesController {
 
 		for (List<String> list : listTermes) {
 			ok = researchTermes(list, champsJson, treeJson);
-			
+
 			if (!ok)  // si aucun terme n'a ete trouve alors on avertit le programme que nous ne pouvons pas parser le fichier
 				return null;
 		}
-
 		return champsJson;
 	}
-	
+
 	// cherche terme valide dans le json
 	private static boolean researchTermes(List<String> list, HashMap<String,String> champsJson, JsonNode treeJson) {
 		int i = 0;
@@ -513,15 +528,16 @@ public class PagesController {
 					b = true;
 					break;
 				}
-				
+
 				i++;
 			}
 
 			if (b == false) {
-				champsJson.put(champs, champs);
+				champsJson.put(champs, null);
+
 			}
 		}
-		
+
 		return b;
 	}
 
@@ -545,12 +561,12 @@ public class PagesController {
 		return null;
 	}
 
-	private static void InitialisationCheckValueBikeStation(List<List<String>> listTermes, boolean staticLink) { 
+	private static void InitialisationCheckValueBikeStation(List<List<String>> listTermes, boolean staticLink) {
 		List<String> stationParentNode = null, stationLat = null, bikesAvailable = null;
 		List<String> stationId = null, stationLon = null, docksAvailable = null;
 		List<String> stationName = null, stationCapacity = null, lastUpdate = null;
 		// ORDRE [0]stationParentNode,[1]stationId,[2]stationName [3]StationLat [4]StationLon [5]StationCapacity [6]bikesAvailable [7]docksAvailable
-		
+
 		// Listes de termes a checker pour pouvoir construire le turtle
 
 		stationParentNode = new ArrayList<String>(Arrays.asList("stationParentNode", "stations", "stationBeanList", "features"));
@@ -559,16 +575,16 @@ public class PagesController {
 			stationName = new ArrayList<String>(Arrays.asList("stationName", "name", "s", "properties.name")) ;
 			stationLat = new ArrayList<String>(Arrays.asList("stationLat","lat","latitude","la","properties.lat")) ;
 			stationLon = new ArrayList<String>(Arrays.asList("stationLon","lon","longitude","lg","long","lo", "lng", "properties.lng")) ;
-			stationCapacity = new ArrayList<String>(Arrays.asList("stationCapacity","capacity","bike_stands","properties.bike_stands")) ;
+			stationCapacity = new ArrayList<String>(Arrays.asList("stationCapacity","capacity","bike_stands","properties.bike_stands","totalDocks")) ;
 		}else {
 			stationId = new ArrayList<String>(Arrays.asList("stationId", "station_id", "id", "number", "properties.number")) ;
 			bikesAvailable = new ArrayList<String>(Arrays.asList("bikesAvailable","num_bikes_available","bikes_available","numBikesAvailable","ba","availableBikes",
 																			  "available_bikes","properties.available_bikes","properties.bikes_available","properties.num_bikes_available"));
-			docksAvailable = new ArrayList<String>(Arrays.asList("docksAvailable","num_docks_available","docks_available","numDocksAvailable","da","availableDocks","available_bike_stands",  
+			docksAvailable = new ArrayList<String>(Arrays.asList("docksAvailable","num_docks_available","docks_available","numDocksAvailable","da","availableDocks","available_bike_stands",
 																			  "properties.available_bike_stands", "properties.docks_available", "properties.num_docks_available")) ;
 			lastUpdate = new ArrayList<String>(Arrays.asList("lastUpdate","last_updated","lastUpdate","lastUpdatedOther","lu","properties.last_update"));
 		}
-		
+
 		// Liste de list de termes a verifie lors de la lecture du fichier
 		listTermes.add(stationParentNode);
 		listTermes.add(stationId);
@@ -580,7 +596,7 @@ public class PagesController {
 		} else {
 			listTermes.add(bikesAvailable);
 			listTermes.add(docksAvailable);
-			listTermes.add(lastUpdate);
+			//listTermes.add(lastUpdate);
 		}
 	}
 
@@ -654,7 +670,7 @@ public class PagesController {
 			if (testIdStation.equals(qs.getLiteral("stationId").getString()) == false) {  // teste si on a change de station
 				// mets a jour le nombre de stations recuperees
 				nbStation += 1;
-				
+
 				// recupere les donnees d'une station
 				LocalisationCity localisationCity = new LocalisationCity(qs.getLiteral("lat").getFloat(), qs.getLiteral("lon").getFloat());
 				historiqueStationList = new ArrayList<HistoriqueStation>();
@@ -667,11 +683,11 @@ public class PagesController {
 				city.addBikeStation(bikeStation);
 				city.setIRI(qs.getResource("s").getURI());
 				city.setDynamicLink(qs.getResource("link").getURI());
-				
+
 				// recupere le nouvel id station pour savoir quand on a change
 				testIdStation = qs.getLiteral("stationId").getString();
 			}
-			
+
 			// recupere les donnees d'un etat de stations
 			historiqueStation = new HistoriqueStation(qs.getLiteral("date").getLong(), qs.getLiteral("bikeAvailable").getInt(), qs.getLiteral("slotAvailable").getInt());
 			historiqueStationList.add(historiqueStation);
@@ -684,7 +700,7 @@ public class PagesController {
 
 		qExec.close();
 		conn.close();
-		
+
 		if (nbStation == 0)  // si aucune station recuperee ont envoie null pour declarer une erreur
 			return null;
 
@@ -726,7 +742,7 @@ public class PagesController {
 
 		qExec.close();
 		conn.close();
-		
+
 		if (nbStation == 0)  // previent le programme que la requete a echoue
 			return null;
 

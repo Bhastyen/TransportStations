@@ -1,9 +1,9 @@
 Info Bordeaux https://www.wikidata.org/wiki/Q1479
-Static  Bordeaux  https://transport.data.gouv.fr/gbfs/vcub/station_information.json 
+Static  Bordeaux  https://transport.data.gouv.fr/gbfs/vcub/station_information.json
 Dynamic Bordeaux https://transport.data.gouv.fr/gbfs/vcub/station_status.json
 
 Info Saint_Etienne https://www.wikidata.org/wiki/Q42716
-Static  Saint_Etienne https://saint-etienne-gbfs.klervi.net/gbfs/en/station_information.json 
+Static  Saint_Etienne https://saint-etienne-gbfs.klervi.net/gbfs/en/station_information.json
 Dynamic Saint_Etienne https://saint-etienne-gbfs.klervi.net/gbfs/en/station_status.json
 
 Info Marseille https://www.wikidata.org/wiki/Q23482
@@ -29,6 +29,13 @@ Dynamique https://feeds.citibikenyc.com/stations/stations.json
 Info Colombus https://www.wikidata.org/wiki/Q16567
 Static https://feeds.cogobikeshare.com/stations/stations.json
 Dynamic https://feeds.cogobikeshare.com/stations/stations.json
+
+
+///////XML//////
+Info Montpellier https://www.wikidata.org/wiki/Q6441
+Static https://data.montpellier3m.fr/sites/default/files/ressources/TAM_MMM_VELOMAG.xml
+Dynamimc https://data.montpellier3m.fr/sites/default/files/ressources/TAM_MMM_VELOMAG.xml
+Tourisme France https://www.data.gouv.fr/fr/datasets/r/f54efb27-a293-47f3-8470-ee013575ae19
 
 Info Lyon https://www.wikidata.org/wiki/Q456
 Static https://www.data.gouv.fr/en/datasets/r/70eff23f-d3f2-435d-9134-4387c129c04d

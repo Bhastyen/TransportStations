@@ -9,23 +9,34 @@
 
 <body>
 	 <script type="text/javascript" src="../../../js/city_manager.js" th:href="@{/js/city_manager.js}"> </script>
-	 
+
 	 <form action ="/newCity" method="POST">
-	 
+
 	 	 <p class="title"> Add Bike Stations</p>
-	 
+
 	     <p>Name</p>
    		 <input type="text" class="nameCity" name="nameCity" required/>
-   		 
+
 	 	 <p>Static Link</p>
    		 <input type="text" class="staticLink" name="staticLink" required/>
-       	 
+
 	 	 <p>Dynamic Link</p>
    		 <input type="text" class="dynamicLink" name="dynamicLink" required/>
 
          <p>Wikidata </p>
+
+   	 <!--<input type="text" class="wikidataCity" name="wikidataCity"/>
+
+   		 <select id="formatFichier" name="formatFichier">
+			  <option value="JSON"> JSON </option>
+			  <option value="CSV"> CSV </option>
+			  <option value="XML"> XML </option>
+
+		</select>-->
+
    		 <input type="text" class="wikidataCity" name="wikidataCity" required/>
-   		 
+
+
 	 	 <!-- label for="type"> Type :
 			<select id="type" name="type">
 			  <option value="Bike"> Bike </option>
@@ -37,9 +48,8 @@
 
   		 <input type="submit" id="add_city" value="Ajouter"/>
 	 </form>
-	 
+
 	 <script th:if="${error}" th:inline="javascript"> showNewCityError(/*[[${error}]]*/); </script>
 </body>
 
 </html>
-
