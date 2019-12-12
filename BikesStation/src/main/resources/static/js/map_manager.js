@@ -319,7 +319,8 @@ function refreshStationFilter(city){
 			        L.latLng(pointers[2][0], pointers[2][1]),
 			        L.latLng(pointers[3][0], pointers[3][1])
 			    ],
-			    routeWhileDragging: false
+			    routeWhileDragging: false,
+        		router: L.Routing.graphHopper('62fcb6e5-14d3-4ac6-b64c-65eb9bcbb803')
 			}).addTo(map);*/
 		}
 	}
