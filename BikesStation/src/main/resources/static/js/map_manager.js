@@ -227,16 +227,38 @@ function changeCity(locCityDep, cityArr){   // type : localisationCity, City
 
 function createPopup(city){
 	var str = "";
-	
+    // specify popup options 
+    var customOptions =
+        {
+        'maxWidth': '500',
+        'className' : 'popup_table'
+        }
+    
 	for (var i = 0; i < city.bikesStations.length; i++){
 		str = "";
 		var st = city.bikesStations[i];
 		var hist = st.listHistoriqueStation[st.listHistoriqueStation.length - 1]; // get the last update of this station
 		
-		if (st.localisation.lat != 0 || st.localisation.lg != 0 && name.includes(search)){
+		if ((st.localisation.lat != 0 || st.localisation.lg != 0) && st.name.toLowerCase().includes(search)){
 	    	var marker = L.marker([st.localisation.lat, st.localisation.lg]).addTo(macarte);
-	    	str += "<p>" + st.name + "  " + st.capacity + "<p>";
-	    	str += "<p style='text-align:center;'>" + hist.bikeAvailable + "  " + hist.slotAvailable + "<p>";
+	    	str += "<h3 style='text-align:center;'>" + st.name + "</h3>";
+	    	str += "<table class='popup_table'>" +
+	    			"<thead>"
+                    +"    <tr>"
+                    +"       <th class='popup_table'>Bike Available</th>"
+                    +"       <th class='popup_table'>Slot Available</th>"
+                    +"         <th class='popup_table'>Total Capacity</th>"
+                    +"    </tr>"
+                    +"</thead>"
+                    +"<tbody>"
+                    +"<tr>"
+                    +"    <td class='popup_table'>"+hist.bikeAvailable +"</td>"
+                    +"    <td class='popup_table'>"+hist.slotAvailable+"</td>"
+                    +"    <td class='popup_table'>"+st.capacity+"</td>"
+                    +"</tr>"
+                    +"</tbody>"
+                    +"</table>";
+   
 	    	marker.bindPopup(str);
 		}
 	}
@@ -265,7 +287,7 @@ function refreshStationFilter(city){
 	    // Creer l'objet "macarte" et l'inserer dans l'element HTML qui a l'ID "map"
 	    macarte = L.map('map').setView([city.localisation.lat, city.localisation.lg], 13);
 		
-	    // ajout des marqueurs pertinant
+	    // ajout des marqueurs pertinent
 	    createPopup(city);
 	    
 	    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {

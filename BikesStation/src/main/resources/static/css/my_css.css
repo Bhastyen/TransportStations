@@ -156,3 +156,15 @@ input[type="submit"], input[type="submit"]:focus{
 	padding: 5px;
 }
 
+#popup_table.th{
+
+padding: 15px;
+  text-align: left;
+  font-size: small;
+}
+
+.popup_table {
+  padding: 15px;
+  text-align: left;
+  font-size: small;
+}
