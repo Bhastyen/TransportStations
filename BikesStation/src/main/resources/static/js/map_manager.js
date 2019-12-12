@@ -305,7 +305,7 @@ function refreshStationFilter(city){
 			        L.latLng(pointers[4], pointers[5]),
 			        L.latLng(pointers[6], pointers[7])
 			    ],
-			    routeWhileDragging: false,
+			    routeWhileDragging: true,
 			    useZoomParameter: false,
         		router: L.Routing.graphHopper('62fcb6e5-14d3-4ac6-b64c-65eb9bcbb803')
 			}).addTo(macarte);
