@@ -575,7 +575,7 @@ public class PagesController {
 			stationName = new ArrayList<String>(Arrays.asList("stationName", "name", "s", "properties.name")) ;
 			stationLat = new ArrayList<String>(Arrays.asList("stationLat","lat","latitude","la","properties.lat")) ;
 			stationLon = new ArrayList<String>(Arrays.asList("stationLon","lon","longitude","lg","long","lo", "lng", "properties.lng")) ;
-			stationCapacity = new ArrayList<String>(Arrays.asList("stationCapacity","capacity","bike_stands","properties.bike_stands")) ;
+			stationCapacity = new ArrayList<String>(Arrays.asList("stationCapacity","capacity","bike_stands","properties.bike_stands","totalDocks")) ;
 		}else {
 			stationId = new ArrayList<String>(Arrays.asList("stationId", "station_id", "id", "number", "properties.number")) ;
 			bikesAvailable = new ArrayList<String>(Arrays.asList("bikesAvailable","num_bikes_available","bikes_available","numBikesAvailable","ba","availableBikes",
@@ -596,7 +596,7 @@ public class PagesController {
 		} else {
 			listTermes.add(bikesAvailable);
 			listTermes.add(docksAvailable);
-			listTermes.add(lastUpdate);
+			//listTermes.add(lastUpdate);
 		}
 	}
 
