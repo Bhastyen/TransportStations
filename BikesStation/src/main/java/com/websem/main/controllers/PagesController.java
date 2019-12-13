@@ -70,17 +70,6 @@ import javax.xml.parsers.ParserConfigurationException;
 public class PagesController {
 	public static final int ECART_UPDATE = 600;
 	private static final int TAILLE_MAX_HISTORIQUE = 4;
-	//TODO
-	//Integration dynamique a la carte
-	//Cluster markers
-	//Itineraire clique relier avec station les plus proches
-
-	//XML pour les stations
-	//Faire les bus
-	//Prise voitures electrique
-	//Tourisme
-
-	//Rdfa bus
 
 	@GetMapping("/")
 	public String home(@RequestParam(required = false) String city, ModelMap modelMap) {
@@ -104,7 +93,7 @@ public class PagesController {
 
 		// verifie si la ville a ete trouve dans city station
 		if (cityChoose == null) {
-			modelMap.put("error","Une erreur est survenue : Stations non trouvées pour la ville de : \" "+name+ " \" dans la base de données");
+			modelMap.put("error","Error : Stations not found for the city of : \" "+name+ " \" in database.");
 			return "pages/error";
 		}
 
@@ -112,7 +101,7 @@ public class PagesController {
 		ok = UpdateCity(cityChoose);
 		if (!ok)  // si echec on envoie une erreur
 		{
-			modelMap.put("error","Une erreur est survenue : Update des données de la ville de : \" \"+name+ \" \" à échoué");
+			modelMap.put("error","Error : Update of data for the city of : \" \"+name+ \" \" failed.");
 			return "pages/error";
 		}
 			
@@ -155,7 +144,7 @@ public class PagesController {
 
 		// on ne traite la demande que si on a une uri
 		if (staticL == null || dynamicL == null) {
-			model.put("error", "Erreur l'une des urls fourni n'est pas correcte.");
+			model.put("error", "Error : one of these urls is not correct.");
 			return "pages/newCity";
 		}
 
@@ -180,7 +169,7 @@ public class PagesController {
 		}
 
 		if (json == null || mapper == null || listStations == null) {
-			model.put("error", "Erreur le fichier du lien n'est pas un json.");
+			model.put("error", "Error : the file of static link is not a json.");
 			return "pages/newCity";
 		}
 
@@ -188,7 +177,7 @@ public class PagesController {
 		// Determiner les parametres
 		champsJson = researchsTermesBike(listTermes, listStations, true);  // create the base for this city so staticLink = true
 		if (champsJson == null) {
-			model.put("error", "Erreur le format du fichier json n'est pas compatible.");
+			model.put("error", "Error : the format of json file is not compatible.");
 			return "pages/newCity";
 		}
 
@@ -230,14 +219,14 @@ public class PagesController {
                     +" SOURCE <" + staticLink + "> AS ?chemin"
                     +" ITERATOR ite:JSONPath(?chemin, \"" + champsJson.get("stationParentNode") + ".*\") AS ?source"
                     +" WHERE{"
-                    +"    BIND(STR((fun:JSONPath(?source,\"." + champsJson.get("stationId") + "\"))) AS ?stationId)"
-                    +"    BIND(STR((fun:JSONPath(?source,\"$."+ champsJson.get("stationName") + "\"))) AS ?name)"
+                    +"    BIND(STR(fun:JSONPath(?source,\"." + champsJson.get("stationId") + "\")) AS ?stationId)"
+                    +"    BIND(STR(fun:JSONPath(?source,\"$." + champsJson.get("stationName") + "\")) AS ?name)"
                     +"    BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationLat") + "\"))) AS ?lat) "
                     +"    BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationLon") + "\"))) AS ?lon)"
                     +"    BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationCapacity") + "\"))) AS ?capacity) "
                     +" }"
                     , SPARQLGenerate.SYNTAX);
-		 //BIND(REPLACE(STR((fun:JSONPath(?source,\"$."+ champsJson.get("stationName") + "\")),\"[^A-Za-z0-9.]\",\" \")) AS ?name)
+		 //BIND(STR(REPLACE(fun:JSONPath(?source,\"$." + champsJson.get("stationName") + "\"),\"[^A-Za-z0-9.]\",\"test\")) AS ?name)
 		RootPlan plan = PlanFactory.create(query);
 
 		Model m = plan.exec();
@@ -252,7 +241,7 @@ public class PagesController {
 		// update une premiere fois
 		ok = UpdateCity(getCityWithName(nameCity, listCity()));
 		if (!ok) {
-			model.put("error", "Erreur lors de la mise a jour des informations de la ville de " + nameCity + ".");
+			model.put("error", "Error : update of the informations for the city of " + nameCity + " failed.");
 			return "pages/newCity";
 		}
 
@@ -452,15 +441,15 @@ public class PagesController {
 
 		for (JsonNode jsonNode: listStations) {
 
-			if (jsonNode.findValue(id) != null)   // si l'id n'est pas trouve dans le fichier on envoit une erreur
+			if (jsonNode.findValue(id) != null && !jsonNode.findValue(id).asText().equals("None"))   // si l'id n'est pas trouve dans le fichier on envoit une erreur
 				idStation = jsonNode.findValue(id).asText();
 			else return false;
 
-			if (jsonNode.findValue(bike_available) != null)   // mets des valeurs par defaut si besoin
+			if (jsonNode.findValue(bike_available) != null && !jsonNode.findValue(bike_available).asText().equals("None"))   // mets des valeurs par defaut si besoin
 				bikeAvailable = jsonNode.findValue(bike_available).asText();
 			else bikeAvailable = "0";
 
-			if (jsonNode.findValue(bike_available) != null)   // mets des valeurs par defaut si besoin
+			if (jsonNode.findValue(bike_available) != null && !jsonNode.findValue(dock_available).asText().equals("None"))   // mets des valeurs par defaut si besoin
 				slotAvailable = jsonNode.findValue(dock_available).asText();
 			else slotAvailable = "0";
 
@@ -516,7 +505,7 @@ public class PagesController {
 
 				if(treeJson.findValue(terme) != null) {
 					path = getPathListStation(treeJson, terme);
-					System.out.println("Path : " + path);
+					System.err.println("Path : " + path);
 					champsJson.put(champs, path);
 					b = true;
 					break;
@@ -529,7 +518,7 @@ public class PagesController {
 			for (String terme : list) {
 
 				if (treeJson.findValue(terme) != null) {
-					System.out.println("Find terme " + terme);
+					System.err.println("Find term " + terme);
 					champsJson.put(champs, terme);
 					b = true;
 					break;
@@ -575,15 +564,14 @@ public class PagesController {
 
 		// Listes de termes a checker pour pouvoir construire le turtle
 
-		stationParentNode = new ArrayList<String>(Arrays.asList("stationParentNode", "stations", "stationBeanList", "features"));
-		stationId = new ArrayList<String>(Arrays.asList("stationId", "station_id", "id", "number", "properties.number")) ;
+		stationParentNode = new ArrayList<String>(Arrays.asList("stationParentNode", "stations", "stationBeanList", "features", "values"));
+		stationId = new ArrayList<String>(Arrays.asList("stationId", "station_id", "id", "number", "properties.number", "idstation")) ;
 		if (staticLink) {
-			stationName = new ArrayList<String>(Arrays.asList("stationName", "name", "s", "properties.name")) ;
+			stationName = new ArrayList<String>(Arrays.asList("stationName", "name", "s", "properties.name", "nom")) ;
 			stationLat = new ArrayList<String>(Arrays.asList("stationLat","lat","latitude","la","properties.lat")) ;
 			stationLon = new ArrayList<String>(Arrays.asList("stationLon","lon","longitude","lg","long","lo", "lng", "properties.lng")) ;
-			stationCapacity = new ArrayList<String>(Arrays.asList("stationCapacity","capacity","bike_stands","properties.bike_stands","totalDocks","da")) ;
+			stationCapacity = new ArrayList<String>(Arrays.asList("stationCapacity","capacity","bike_stands","properties.bike_stands","totalDocks","da","nbbornettes")) ;
 		}else {
-			stationId = new ArrayList<String>(Arrays.asList("stationId", "station_id", "id", "number", "properties.number")) ;
 			bikesAvailable = new ArrayList<String>(Arrays.asList("bikesAvailable","num_bikes_available","bikes_available","numBikesAvailable","ba","availableBikes",
 																			  "available_bikes","properties.available_bikes","properties.bikes_available","properties.num_bikes_available"));
 			docksAvailable = new ArrayList<String>(Arrays.asList("docksAvailable","num_docks_available","docks_available","numDocksAvailable","da","availableDocks","available_bike_stands",

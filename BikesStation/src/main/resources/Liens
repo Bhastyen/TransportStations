@@ -38,7 +38,9 @@ Dynamimc https://data.montpellier3m.fr/sites/default/files/ressources/TAM_MMM_VE
 Tourisme France https://www.data.gouv.fr/fr/datasets/r/f54efb27-a293-47f3-8470-ee013575ae19
 
 Info Lyon https://www.wikidata.org/wiki/Q456
+Static https://download.data.grandlyon.com/ws/grandlyon/pvo_patrimoine_voirie.pvostationvelov/all.json?maxfeatures=404&start=1
 Static https://www.data.gouv.fr/en/datasets/r/70eff23f-d3f2-435d-9134-4387c129c04d
 Dynamic https://www.data.gouv.fr/en/datasets/r/70eff23f-d3f2-435d-9134-4387c129c04d
+Dynamic https://download.data.grandlyon.com/ws/rdata/jcd_jcdecaux.jcdvelov/all.json?maxfeatures=404&start=1
 
 Tourisme France https://www.data.gouv.fr/fr/datasets/r/f54efb27-a293-47f3-8470-ee013575ae19
