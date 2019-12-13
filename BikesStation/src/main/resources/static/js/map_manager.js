@@ -319,15 +319,22 @@ function changeCity(locCityDep, cityArr){   // type : localisationCity, City
 	}
 }
 
-function createPopup(city){
+function createPopup(city){//https://www.datavis.fr/index.php?page=leaflet-cluster
 	var str = "";
     // specify popup options 
-    var customOptions =
-        {
-        'maxWidth': '500',
-        'className' : 'popup_table'
-        }
-    
+
+	var markersCluster = new L.MarkerClusterGroup()
+	/*var markersCluster = new L.MarkerClusterGroup({
+	    iconCreateFunction: function(cluster) {
+	        var digits = (cluster.getChildCount()+'').length;
+	        return L.divIcon({ 
+	            html: cluster.getChildCount(), 
+	            className: 'cluster digits-'+digits,
+	            iconSize: null 
+	        });
+	    }
+	});*/
+	
 	for (var i = 0; i < city.bikesStations.length; i++){
 		str = "";
 		var st = city.bikesStations[i];
@@ -337,6 +344,8 @@ function createPopup(city){
 	    	createInfo(st, marker);
 		}
 	}
+	//markersCluster.addTo(macarte);
+	macarte.addLayer(markersCluster);
 }
 
 function createInfo(st, marker) {

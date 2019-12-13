@@ -5,6 +5,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.io.OutputStream;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -36,6 +37,7 @@ import org.apache.jena.update.UpdateFactory;
 import org.apache.jena.update.UpdateRequest;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.XML;
 import org.apache.jena.query.Dataset ;
 import org.apache.jena.query.DatasetFactory ;
 import org.springframework.stereotype.Controller;
@@ -45,7 +47,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.w3c.dom.Document;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.XMLReaderFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -65,6 +70,7 @@ import com.websem.main.models.LocalisationCity;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import com.fasterxml.jackson.dataformat.xml.*;;
 
 @Controller
 public class PagesController {
@@ -104,7 +110,7 @@ public class PagesController {
 			modelMap.put("error","Error : Update of data for the city of : \" \"+name+ \" \" failed.");
 			return "pages/error";
 		}
-			
+
 
 		// envoie donnees au client
 		modelMap.put("Cities", listCity());
@@ -132,7 +138,7 @@ public class PagesController {
 
 
 	@RequestMapping(value="/newCity", method = RequestMethod.POST)
-	public String newCity(@RequestParam(required = true) String nameCity, String staticLink, String dynamicLink, String wikidataCity, ModelMap model){
+	public String newCity(@RequestParam(required = true) String nameCity, String staticLink, String dynamicLink, String wikidataCity, ModelMap model,String formatFichier){
 		URL staticL = null, dynamicL = null;
 
 		try {
@@ -159,14 +165,32 @@ public class PagesController {
 		JsonNode listStations = null;
 
 		try {
-			// Arbre Json du dynamique , sert a trouver les termes viable pour inserer une nouvelle ville
-			json = JsonReader.readJsonFromUrl(staticLink);
+			if(formatFichier.equals("XML")) {
+				DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+				DocumentBuilder db = dbf.newDocumentBuilder();
+				Document doc = db.parse(new URL(staticLink).openStream());
+				/*System.out.println("doc "+ doc.toString());
+				XmlMapper xmlMapper = new XmlMapper();
+				JsonNode jsonNode = xmlMapper.readTree(doc.toString().getBytes());
+				System.out.println("jsonNOde "+ jsonNode.toString());
+				ObjectMapper jsonMapper = new ObjectMapper();
+				String jsonString = jsonMapper.writeValueAsString(jsonNode);*/
+
+			    json = XML.toJSONObject(doc.toString());
+			    //System.out.println(jsonString);
+			}else if(formatFichier.equals("JSON")){
+				// Arbre Json du dynamique , sert a trouver les termes viable pour inserer une nouvelle ville
+				json = JsonReader.readJsonFromUrl(staticLink);
+				
+				
+			}
 			//Creation Arbre pour analyser le Json
 			mapper = new ObjectMapper();
 			listStations = mapper.readTree(json.toString());
-		} catch (JSONException | IOException e) {
+		} catch (JSONException | IOException  | SAXException | ParserConfigurationException e ) {
 			System.err.println("Probleme lors de la lecture du json " + e.getMessage());
-		}
+		
+		} 
 
 		if (json == null || mapper == null || listStations == null) {
 			model.put("error", "Error : the file of static link is not a json.");
@@ -227,6 +251,7 @@ public class PagesController {
                     +" }"
                     , SPARQLGenerate.SYNTAX);
 		 //BIND(STR(REPLACE(fun:JSONPath(?source,\"$." + champsJson.get("stationName") + "\"),\"[^A-Za-z0-9.]\",\"test\")) AS ?name)
+
 		RootPlan plan = PlanFactory.create(query);
 
 		Model m = plan.exec();
@@ -277,14 +302,26 @@ public class PagesController {
 
 		begin = System.currentTimeMillis();
 		try {
-			// Recupere JSON sur site Dynamique
-			json = JsonReader.readJsonFromUrl(adresseDynamique);
+			
+			URLConnection conn1 = new URL(adresseDynamique).openConnection();
+			String type = conn1.getContentType();
+			if(type.contains("xml")) {
+				DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+				DocumentBuilder db = dbf.newDocumentBuilder();
+				Document doc = db.parse(new URL(adresseDynamique).openStream());
+				
+			    json = XML.toJSONObject(doc.toString());
+			}else {
+				System.out.println("type fichier " + type);
+				// Recupere JSON sur site Dynamique
+				json = JsonReader.readJsonFromUrl(adresseDynamique);
+			}
 			// Creation Arbre pour analyser le Json
 			mapper = new ObjectMapper();
 			listStations = mapper.readTree(json.toString());
-		} catch (JSONException | IOException e) {
+		} catch (JSONException | IOException  | SAXException | ParserConfigurationException e) {
 			System.err.println("Probleme lors de la lecture du json " + e.getMessage());
-		}
+		} 
 
 		end = System.currentTimeMillis();
 		System.out.println("Get json Time : " + ((double) (end - begin) / 1000.0));
@@ -563,19 +600,18 @@ public class PagesController {
 		// ORDRE [0]stationParentNode,[1]stationId,[2]stationName [3]StationLat [4]StationLon [5]StationCapacity [6]bikesAvailable [7]docksAvailable
 
 		// Listes de termes a checker pour pouvoir construire le turtle
-
-		stationParentNode = new ArrayList<String>(Arrays.asList("stationParentNode", "stations", "stationBeanList", "features", "values"));
-		stationId = new ArrayList<String>(Arrays.asList("stationId", "station_id", "id", "number", "properties.number", "idstation")) ;
+		stationParentNode = new ArrayList<String>(Arrays.asList("stationParentNode", "stations", "stationBeanList", "features", "sl", "fields","values"));
+		stationId = new ArrayList<String>(Arrays.asList("stationId", "station_id", "id", "number", "properties.number","idstation")) ;
 		if (staticLink) {
-			stationName = new ArrayList<String>(Arrays.asList("stationName", "name", "s", "properties.name", "nom")) ;
-			stationLat = new ArrayList<String>(Arrays.asList("stationLat","lat","latitude","la","properties.lat")) ;
-			stationLon = new ArrayList<String>(Arrays.asList("stationLon","lon","longitude","lg","long","lo", "lng", "properties.lng")) ;
-			stationCapacity = new ArrayList<String>(Arrays.asList("stationCapacity","capacity","bike_stands","properties.bike_stands","totalDocks","da","nbbornettes")) ;
+			stationName = new ArrayList<String>(Arrays.asList("stationName", "name", "s", "properties.name", "na", "nom")) ;
+			stationLat = new ArrayList<String>(Arrays.asList("stationLat", "lat", "latitude", "la", "properties.lat", "coordonnees[0]")) ;
+			stationLon = new ArrayList<String>(Arrays.asList("stationLon", "lon", "longitude", "lg", "long", "lo", "lng", "properties.lng", "coordonnees[1]")) ;
+			stationCapacity = new ArrayList<String>(Arrays.asList("stationCapacity", "capacity", "bike_stands", "properties.bike_stands", "totalDocks", "da", "to", "nombreemplacementsactuels")) ;
 		}else {
 			bikesAvailable = new ArrayList<String>(Arrays.asList("bikesAvailable","num_bikes_available","bikes_available","numBikesAvailable","ba","availableBikes",
-																			  "available_bikes","properties.available_bikes","properties.bikes_available","properties.num_bikes_available"));
+					"available_bikes","properties.available_bikes","properties.bikes_available","properties.num_bikes_available","av","nombrevelosdisponibles"));
 			docksAvailable = new ArrayList<String>(Arrays.asList("docksAvailable","num_docks_available","docks_available","numDocksAvailable","da","availableDocks","available_bike_stands",
-																			  "properties.available_bike_stands", "properties.docks_available", "properties.num_docks_available")) ;
+					"properties.available_bike_stands", "properties.docks_available", "properties.num_docks_available","fr","nombreemplacementsdisponibles")) ;
 			lastUpdate = new ArrayList<String>(Arrays.asList("lastUpdate","last_updated","lastUpdate","lastUpdatedOther","lu","properties.last_update"));
 		}
 

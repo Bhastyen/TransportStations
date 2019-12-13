@@ -30,6 +30,9 @@ Info Colombus https://www.wikidata.org/wiki/Q16567
 Static https://feeds.cogobikeshare.com/stations/stations.json
 Dynamic https://feeds.cogobikeshare.com/stations/stations.json
 
+Info Strasbourg https://www.wikidata.org/wiki/Q6602
+Static https://data.strasbourg.eu/explore/dataset/stations-velhop/download/?format=json&timezone=Europe/Berlin
+Dynamic https://data.strasbourg.eu/explore/dataset/stations-velhop/download/?format=json&timezone=Europe/Berlin
 
 ///////XML//////
 Info Montpellier https://www.wikidata.org/wiki/Q6441
