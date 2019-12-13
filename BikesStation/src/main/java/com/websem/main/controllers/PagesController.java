@@ -139,7 +139,7 @@ public class PagesController {
 
 
 	@RequestMapping(value="/newCity", method = RequestMethod.POST)
-	public String newCity(@RequestParam(required = true) String nameCity, String staticLink, String dynamicLink, String wikidataCity, ModelMap model,String formatFichier){
+	public String newCity(@RequestParam(required = true) String nameCity, String staticLink, String dynamicLink, String wikidataCity, ModelMap model){
 		URL staticL = null, dynamicL = null;
 
 		try {
@@ -166,29 +166,27 @@ public class PagesController {
 		JsonNode listStations = null;
 
 		try {
-			if(formatFichier.equals("XML")) {
+			/*if(formatFichier.equals("XML")) {
 				DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 				DocumentBuilder db = dbf.newDocumentBuilder();
 				Document doc = db.parse(new URL(staticLink).openStream());
-				/*System.out.println("doc "+ doc.toString());
+				System.out.println("doc "+ doc.toString());
 				XmlMapper xmlMapper = new XmlMapper();
 				JsonNode jsonNode = xmlMapper.readTree(doc.toString().getBytes());
 				System.out.println("jsonNOde "+ jsonNode.toString());
 				ObjectMapper jsonMapper = new ObjectMapper();
-				String jsonString = jsonMapper.writeValueAsString(jsonNode);*/
+				String jsonString = jsonMapper.writeValueAsString(jsonNode);
 
 			    json = XML.toJSONObject(doc.toString());
 			    //System.out.println(jsonString);
-			}else if(formatFichier.equals("JSON")){
+			}else if(formatFichier.equals("JSON")){*/
 				// Arbre Json du dynamique , sert a trouver les termes viable pour inserer une nouvelle ville
-				json = JsonReader.readJsonFromUrl(staticLink);
-				
-				
-			}
+			json = JsonReader.readJsonFromUrl(staticLink);
+			//}
 			//Creation Arbre pour analyser le Json
 			mapper = new ObjectMapper();
 			listStations = mapper.readTree(json.toString());
-		} catch (JSONException | IOException  | SAXException | ParserConfigurationException e ) {
+		} catch (JSONException | IOException e /* | SAXException | ParserConfigurationException  */) {
 			System.err.println("Probleme lors de la lecture du json " + e.getMessage());
 		
 		} 
@@ -238,7 +236,7 @@ public class PagesController {
                     +" ITERATOR ite:JSONPath(?chemin, \"" + champsJson.get("stationParentNode") + ".*\") AS ?source"
                     +" WHERE{"
                     +"    BIND(STR(fun:JSONPath(?source,\"." + champsJson.get("stationId") + "\")) AS ?stationId)"
-                    +"    BIND(STR(fun:JSONPath(?source,\"$." + champsJson.get("stationName") + "\")) AS ?name)"
+                    +"    BIND(STR(fun:JSONPath(?source,\"$.[" + champsJson.get("stationName") + "]\")) AS ?name)"
                     +"    BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationLat") + "\"))) AS ?lat) "
                     +"    BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationLon") + "\"))) AS ?lon)"
                     +"    BIND(STR((fun:JSONPath(?source,\"."+ champsJson.get("stationCapacity") + "\"))) AS ?capacity) "

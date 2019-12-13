@@ -1,3 +1,6 @@
+
+##### LINKS THAT WORK
+
 Info Bordeaux https://www.wikidata.org/wiki/Q1479
 Static  Bordeaux  https://transport.data.gouv.fr/gbfs/vcub/station_information.json
 Dynamic Bordeaux https://transport.data.gouv.fr/gbfs/vcub/station_status.json
@@ -30,13 +33,11 @@ Info Colombus https://www.wikidata.org/wiki/Q16567
 Static https://feeds.cogobikeshare.com/stations/stations.json
 Dynamic https://feeds.cogobikeshare.com/stations/stations.json
 
-Info Strasbourg https://www.wikidata.org/wiki/Q6602
-Static https://data.strasbourg.eu/explore/dataset/stations-velhop/download/?format=json&timezone=Europe/Berlin
-Dynamic https://data.strasbourg.eu/explore/dataset/stations-velhop/download/?format=json&timezone=Europe/Berlin
+Info Vannes https://www.wikidata.org/wiki/Q6593
+Static https://vannes-gbfs.klervi.net/gbfs/en/station_information.json
+Dynamic https://vannes-gbfs.klervi.net/gbfs/en/station_status.json
 
-Info Lille https://www.wikidata.org/wiki/Q648
-Static https://www.data.gouv.fr/fr/datasets/r/6d66af27-7a26-4263-b610-4ecf5fb34369
-Dynamic https://www.data.gouv.fr/fr/datasets/r/6d66af27-7a26-4263-b610-4ecf5fb34369
+##### LINKS THAT NOT WORK
 
 ///////XML//////
 Info Montpellier https://www.wikidata.org/wiki/Q6441
@@ -47,5 +48,17 @@ Tourisme France https://www.data.gouv.fr/fr/datasets/r/f54efb27-a293-47f3-8470-e
 Info Lyon https://www.wikidata.org/wiki/Q456
 Static https://download.data.grandlyon.com/ws/grandlyon/pvo_patrimoine_voirie.pvostationvelov/all.json?maxfeatures=404&start=1
 Dynamic https://download.data.grandlyon.com/ws/rdata/jcd_jcdecaux.jcdvelov/all.json?maxfeatures=404&start=1
+
+Info Strasbourg https://www.wikidata.org/wiki/Q6602
+Static https://data.strasbourg.eu/explore/dataset/stations-velhop/download/?format=json&timezone=Europe/Berlin
+Dynamic https://data.strasbourg.eu/explore/dataset/stations-velhop/download/?format=json&timezone=Europe/Berlin
+
+Info Lille https://www.wikidata.org/wiki/Q648
+Static https://www.data.gouv.fr/fr/datasets/r/6d66af27-7a26-4263-b610-4ecf5fb34369
+Dynamic https://www.data.gouv.fr/fr/datasets/r/6d66af27-7a26-4263-b610-4ecf5fb34369
+
+Info Mulhouse  https://www.wikidata.org/wiki/Q79815
+Static https://www.data.gouv.fr/fr/datasets/r/a0aee733-51dc-4117-a9b4-f2e6b360983c
+Dynamic https://www.data.gouv.fr/fr/datasets/r/a0aee733-51dc-4117-a9b4-f2e6b360983c
 
 Tourisme France https://www.data.gouv.fr/fr/datasets/r/f54efb27-a293-47f3-8470-ee013575ae19
