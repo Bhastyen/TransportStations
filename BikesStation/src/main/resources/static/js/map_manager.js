@@ -459,13 +459,17 @@ function addTrip(begin){   // begin : bool
 	
 	// change cursor for the map
 	if (begin)
-		document.getElementById('map').style.cursor = "url(../../../css/images/pointer-green-icon.png) 16 48, pointer";
+		document.getElementById('map').style.cursor = "url(../../../css/images/pointer-green-icon.png) 16 48, pointer";  //https://www.needpix.com/photo/823797/pointer-map-icon-gps-marker-travel-business-sign-symbol  
 	else document.getElementById('map').style.cursor = "url(../../../css/images/pointer-red-icon.png) 16 48, pointer";
 }
 
 function changeCursor() {
 	document.getElementById('bd').style.cursor = 'progress';
 	document.getElementById('map').style.cursor = 'progress';
+}
+
+function reloadData(){
+	location.reload();
 }
 
 //window.onload = function(){

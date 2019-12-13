@@ -76,6 +76,10 @@
 						<img alt="Arrival Pointer" src="../../../css/images/pointer-red.png" th:href="@{/css/images/pointer-red.png}">
 						<!-- https://www.needpix.com/photo/823797/pointer-map-icon-gps-marker-travel-business-sign-symbol -->
 					</div>
+					<button th:if="${CityChoose}" id="refresh" th:onclick="reloadData();">
+						<img alt="Arrival Pointer" src="../../../css/images/refresh-orange.png" th:href="@{/css/images/refresh-orange.png}">
+						<!-- https://storage.needpix.com/rsynced_images/refresh-525698_1280.png -->
+					</button>
 					<!-- div id="select_subway" th:onclick="addRemoveTypeTransport(this, 'Subway'); refreshStationFilter(/*[[${CityChoose}]]*/);">
 						<img alt="Subway" src="../../../css/images/icon-train.png" th:href="@{/css/images/icon-train.png}">
 					</div>
