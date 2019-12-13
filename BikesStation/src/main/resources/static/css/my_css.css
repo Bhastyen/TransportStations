@@ -77,6 +77,17 @@ input[type="submit"], input[type="submit"]:focus{
 	
 }
 
+#refresh {
+    background: transparent;
+    border: none;
+    margin-left: 75px;
+}
+
+#refresh img{
+	width: 35px;
+	height: 35px;
+}
+
 #map{
     width: 85vw;
     height: 92vh;

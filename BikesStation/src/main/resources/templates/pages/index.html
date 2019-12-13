@@ -21,6 +21,8 @@
 	   integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
 	   crossorigin=""/>
     <link rel="stylesheet" href="../../../css/leaflet-routing-machine.css" th:href="@{/css/leaflet-routing-machine.css}" />
+    <link rel="stylesheet" href="../../../css/MarkerCluster.css" th:href="@{/css/MarkerCluster.css}"/>
+    <link rel="stylesheet" href="../../../css/MarkerCluster.Default.css" th:href="@{/css/MarkerCluster.Default.css}"/>
 </head>
 
 <body id="bd">
@@ -74,6 +76,10 @@
 						<img alt="Arrival Pointer" src="../../../css/images/pointer-red.png" th:href="@{/css/images/pointer-red.png}">
 						<!-- https://www.needpix.com/photo/823797/pointer-map-icon-gps-marker-travel-business-sign-symbol -->
 					</div>
+					<button th:if="${CityChoose}" id="refresh" th:onclick="reloadData();">
+						<img alt="Arrival Pointer" src="../../../css/images/refresh-orange.png" th:href="@{/css/images/refresh-orange.png}">
+						<!-- https://storage.needpix.com/rsynced_images/refresh-525698_1280.png -->
+					</button>
 					<!-- div id="select_subway" th:onclick="addRemoveTypeTransport(this, 'Subway'); refreshStationFilter(/*[[${CityChoose}]]*/);">
 						<img alt="Subway" src="../../../css/images/icon-train.png" th:href="@{/css/images/icon-train.png}">
 					</div>
@@ -90,6 +96,7 @@
 			  crossorigin=""></script>
             <script src="../../../js/leaflet-routing-machine.js" th:href="@{/js/leaflet-routing-machine.js}"></script>
             <script src="../../../js/lrm-graphhopper.js" th:href="@{/js/lrm-graphhopper.js}"></script>
+            <script src="../../../js/leaflet.markercluster.js" th:href="@{/js/leaflet.markercluster.js}"></script>
 			
 			<script type="text/javascript" src="../../../js/map_manager.js" th:href="@{/js/map_manager.js}"></script>
 			

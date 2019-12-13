@@ -120,8 +120,6 @@ function addPointer(newLocation, begin) {
 function myCreateMarker (i, start, n){
     var marker_icon = null;
     
-    console.log("Marker i : " + i + "  n " + n);
-    
     if (i == 0) {
         marker_icon = new L.icon({
         	iconUrl: '../../../css/images/pointer-green.png',
@@ -179,9 +177,6 @@ function nearestStation(newLocation, begin) {
 		if (nearest != null){
 			dist1 = Math.sqrt((st.localisation.lat - newLocation.lat) * (st.localisation.lat - newLocation.lat) + (st.localisation.lg - newLocation.lng) * (st.localisation.lg - newLocation.lng));  
 			dist2 = Math.sqrt((nearest.lat - newLocation.lat) * (nearest.lat - newLocation.lat) + (nearest.lg - newLocation.lng) * (nearest.lg - newLocation.lng));  
-			
-			//console.log("Dist1 " + dist1);
-			//console.log("Dist2 " + dist2);
 			
 			if (dist1 < dist2) {
 				nearest = st.localisation;
@@ -319,31 +314,32 @@ function changeCity(locCityDep, cityArr){   // type : localisationCity, City
 	}
 }
 
-function createPopup(city){//https://www.datavis.fr/index.php?page=leaflet-cluster
+function createPopup(city){  // https://www.datavis.fr/index.php?page=leaflet-cluster
 	var str = "";
-    // specify popup options 
-
-	var markersCluster = new L.MarkerClusterGroup()
-	/*var markersCluster = new L.MarkerClusterGroup({
+	
+    // specify popup options
+	var markersCluster = new L.markerClusterGroup({
 	    iconCreateFunction: function(cluster) {
-	        var digits = (cluster.getChildCount()+'').length;
+	        var digits = (cluster.getChildCount() + '').length;
 	        return L.divIcon({ 
 	            html: cluster.getChildCount(), 
 	            className: 'cluster digits-'+digits,
 	            iconSize: null 
 	        });
 	    }
-	});*/
+	});
 	
 	for (var i = 0; i < city.bikesStations.length; i++){
 		str = "";
 		var st = city.bikesStations[i];
 		
 		if ((st.localisation.lat != 0 || st.localisation.lg != 0) && st.name.toLowerCase().includes(search)){
-	    	var marker = L.marker([st.localisation.lat, st.localisation.lg]).addTo(macarte);
+	    	var marker = L.marker([st.localisation.lat, st.localisation.lg]);      //.addTo(macarte);
 	    	createInfo(st, marker);
+	    	markersCluster.addLayer(marker);
 		}
 	}
+	
 	//markersCluster.addTo(macarte);
 	macarte.addLayer(markersCluster);
 }
@@ -396,15 +392,15 @@ function refreshStationFilter(city){
 	
 	    // Creer l'objet "macarte" et l'inserer dans l'element HTML qui a l'ID "map"
 	    macarte = L.map('map').setView([city.localisation.lat, city.localisation.lg], zoomArr);
-		
-	    // ajout des marqueurs pertinent
-	    createPopup(city);
 	    
 	    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
 		    attribution: 'données © <a href="//osm.org/copyright">OpenStreetMap</a>/ODbL - rendu <a href="//openstreetmap.fr">OSM France</a>',
 		        minZoom: 1,
 		        maxZoom: 20
 		    }).addTo(macarte);
+		
+	    // ajout des marqueurs pertinent
+	    createPopup(city);
 	    
 	    // add marker when a user click on the map
 	    macarte.on('click', function(e) {
@@ -463,13 +459,17 @@ function addTrip(begin){   // begin : bool
 	
 	// change cursor for the map
 	if (begin)
-		document.getElementById('map').style.cursor = "url(../../../css/images/pointer-green-icon.png) 16 48, pointer";
+		document.getElementById('map').style.cursor = "url(../../../css/images/pointer-green-icon.png) 16 48, pointer";  //https://www.needpix.com/photo/823797/pointer-map-icon-gps-marker-travel-business-sign-symbol  
 	else document.getElementById('map').style.cursor = "url(../../../css/images/pointer-red-icon.png) 16 48, pointer";
 }
 
 function changeCursor() {
 	document.getElementById('bd').style.cursor = 'progress';
 	document.getElementById('map').style.cursor = 'progress';
+}
+
+function reloadData(){
+	location.reload();
 }
 
 //window.onload = function(){
