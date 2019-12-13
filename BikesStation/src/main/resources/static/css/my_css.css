@@ -151,7 +151,7 @@ input[type="submit"], input[type="submit"]:focus{
 
 #select_bike img,#select_parking img,#select_begin img,#select_end img,#select_bike img,#select_subway img {
 	width: 45px;
-	height: 45px;
+	height: 60px;
 	
 	padding: 5px;
 }
@@ -163,10 +163,12 @@ padding: 15px;
   font-size: small;
 }
 
-.popup_table {
-  padding: 15px;
-  text-align: left;
+.popup_table{
+  padding: 5px;
+  text-align: center;
   font-size: small;
+  
+  border: 1px solid black;
 }
 
 /* Pour les markers*/

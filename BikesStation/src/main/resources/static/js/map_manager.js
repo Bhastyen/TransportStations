@@ -6,10 +6,13 @@ var lon = 4.3896303;
 var control_begin_pointer = false;
 var control_end_pointer = false;
 var pointers = [];
+var infos = [];
 var types = ['Bike'];
 var search = '';
 var macarte = null;
 var cityToShow = null;
+var controlRouting = null;
+var zoomArr = 13, zoomBeg = 3;
 
 
 function initMap(cities, latc, lonc, zoom) {
@@ -43,15 +46,27 @@ function initMap(cities, latc, lonc, zoom) {
     	if (control_begin_pointer) {
 	        var popLocation = e.latlng;
 	    	addPointer(popLocation, true);
-	    	refreshStationFilter(cityToShow);
+	    	//refreshStationFilter(cityToShow);
     	}
     	
     	if (control_end_pointer) {
 	        var popLocation = e.latlng;
 	    	addPointer(popLocation, false);
-	    	refreshStationFilter(cityToShow);
+	    	//refreshStationFilter(cityToShow);
     	}
     });
+	
+	// add the trip
+	controlRouting = L.Routing.control({
+	    waypoints: [],
+	    routeWhileDragging: false,
+	    useZoomParameter: false,
+	    autoRoute: false,
+	    createMarker: myCreateMarker,
+		router: L.Routing.graphHopper('62fcb6e5-14d3-4ac6-b64c-65eb9bcbb803')
+	}).addTo(macarte);
+	
+	controlRouting.getPlan().draggableWaypoints = false;
 }
 
 function addPointer(newLocation, begin) {
@@ -72,26 +87,89 @@ function addPointer(newLocation, begin) {
 	}
 	
 	if (!begin && pointers.length < 8) {
-		pointers.push(newLocation.lat);
-		pointers.push(newLocation.lng);
 	    pointers.push(locStation.lat);
 	    pointers.push(locStation.lg);
+		pointers.push(newLocation.lat);
+		pointers.push(newLocation.lng);
 	}
 
 	if (!begin && pointers.length >= 8) {
-		pointers[4] = newLocation.lat;
-		pointers[5] = newLocation.lng;
-		pointers[6] = locStation.lat;
-		pointers[7] = locStation.lg;
+		pointers[4] = locStation.lat;
+		pointers[5] = locStation.lg;
+		pointers[6] = newLocation.lat;
+		pointers[7] = newLocation.lng;
 	}
 	
     // "close" the button to add a pointer
+	document.getElementById('map').style.cursor = "pointer";
 	control_begin_pointer = false;
 	control_end_pointer = false;
+	
+	// modify waypoints for control routing
+	if (controlRouting != null){
+		controlRouting.setWaypoints( [
+			        L.latLng(pointers[0 % pointers.length], pointers[1 % pointers.length]),
+			        L.latLng(pointers[2 % pointers.length], pointers[3 % pointers.length]),
+			        L.latLng(pointers[4 % pointers.length], pointers[5 % pointers.length]),
+			        L.latLng(pointers[6 % pointers.length], pointers[7 % pointers.length])
+			    ]);
+		controlRouting.route();
+	}
 }
 
-function nearestStation(newLocation) {
+function myCreateMarker (i, start, n){
+    var marker_icon = null;
+    
+    console.log("Marker i : " + i + "  n " + n);
+    
+    if (i == 0) {
+        marker_icon = new L.icon({
+        	iconUrl: '../../../css/images/pointer-green.png',
+
+            iconSize:     [23, 45], 
+            shadowSize:   [50, 64],
+            iconAnchor:   [11, 44],
+            shadowAnchor: [4, 62], 
+            popupAnchor:  [-3, -32] });
+    } else if (i == n - 1) {
+        marker_icon = new L.icon({
+        	iconUrl: '../../../css/images/pointer-red.png',
+
+            iconSize:     [23, 45], 
+            shadowSize:   [50, 64],
+            iconAnchor:   [11, 44],
+            shadowAnchor: [4, 62], 
+            popupAnchor:  [-3, -32] });
+    } else {
+        marker_icon = new L.icon({
+        	iconUrl: '../../../css/images/pointer-purple.png',
+
+            iconSize:     [23, 45], 
+            shadowSize:   [50, 64],
+            iconAnchor:   [11, 44],
+            shadowAnchor: [4, 62], 
+            popupAnchor:  [-3, -32] });
+    }
+    
+    var marker = L.marker (start.latLng, {
+        draggable: false,
+        bounceOnAdd: false,
+        icon: marker_icon
+    });
+    
+    // create popup
+    if (i == 1) {
+    	createInfo(infos[0], marker);
+    }else if (i == 2){
+    	createInfo(infos[1], marker);
+    }
+    
+    return marker;
+}
+
+function nearestStation(newLocation, begin) {
 	var nearest = null;
+	var info = null;
 	var st;
 	var dist1, dist2;
 	
@@ -107,9 +185,26 @@ function nearestStation(newLocation) {
 			
 			if (dist1 < dist2) {
 				nearest = st.localisation;
+				info = st;
 			}
 		} else {
 			nearest = st.localisation;
+			info = st;
+		}
+	}
+	
+	// give infos about new station
+	if (begin) {
+		if (infos.length < 1) {
+			infos.push(info);
+		}else{
+			infos[0] = info;
+		}
+	}else{
+		if (infos.length < 2) {
+			infos.push(info);
+		}else{
+			infos[1] = info;
 		}
 	}
 	
@@ -121,7 +216,7 @@ function updateCityToShow(city) {
 }
 
 function reinitMap(lastLoc){
-	inc = 12;
+	inc = zoomArr;
 	latc = lat;
 	lonc = lon;
 	
@@ -139,7 +234,7 @@ function reinitMap(lastLoc){
 	// fonction d'animation du zoom
 	function dezoomMap(){
 		
-		if (inc <= 4){
+		if (inc <= zoomBeg){
 	        clearInterval(id);
 		    macarte.setView([latc, lonc], inc);
 		    
@@ -171,21 +266,21 @@ function goToCity(city){   // type : City
 	}
 
 	// positionnement de la carte sur la ville
-    macarte.setView([locs[0], locs[1]], 4);
+    macarte.setView([locs[0], locs[1]], zoomBeg);
 	id = setInterval(zoomMap, time);
 	
 	// fonction d'animation du zoom
 	function zoomMap(){
 		
-		if (inc >= 8){
+		if (zoomBeg + (inc + 1) >= zoomArr){
 	        clearInterval(id);
-		    macarte.setView([locs[0], locs[1]], 4 + (inc + 1));
+		    macarte.setView([locs[0], locs[1]], zoomBeg + (inc + 1));
 		    
 		    // creer les popup et les marqueurs pour les stations
 		    createPopup(city);
 		}else{
-		    inc += 2;
-		    macarte.setView([locs[0], locs[1]], 4 + (inc + 1));
+		    inc += 3;
+		    macarte.setView([locs[0], locs[1]], zoomBeg + (inc + 1));
 		}
 	}
 	
@@ -205,21 +300,21 @@ function changeCity(locCityDep, cityArr){   // type : localisationCity, City
 	// fonction d'animation du deplacement
 	function moveMap(){
 		
-		if (inc >= 2 && zoom){
+		if (inc >= 5 && zoom){
 	        clearInterval(id);
-		    macarte.setView([cityArr.localisation.lat, cityArr.localisation.lg], 7 + inc * 3);
+		    macarte.setView([cityArr.localisation.lat, cityArr.localisation.lg], zoomBeg + inc * 2);
 		    
 		    // creer les popup et les marqueurs pour les stations
 		    createPopup(cityArr);
-		}else if (inc >= 2 && !zoom){
+		}else if (inc >= 5 && !zoom){
 			inc = 0;
 			zoom = !zoom;
 		}else if (!zoom){
 		    inc += 1;
-		    macarte.setView(pos, 12 - inc * 3);
+		    macarte.setView(pos, zoomArr - inc * 2);
 		}else if (zoom){
 		    inc += 1;
-		    macarte.setView([cityArr.localisation.lat, cityArr.localisation.lg], 7 + inc * 3);
+		    macarte.setView([cityArr.localisation.lat, cityArr.localisation.lg], zoomBeg + inc * 2);
 		}
 	}
 }
@@ -243,36 +338,40 @@ function createPopup(city){//https://www.datavis.fr/index.php?page=leaflet-clust
 	for (var i = 0; i < city.bikesStations.length; i++){
 		str = "";
 		var st = city.bikesStations[i];
-		var hist = st.listHistoriqueStation[st.listHistoriqueStation.length - 1]; // get the last update of this station
 		
 		if ((st.localisation.lat != 0 || st.localisation.lg != 0) && st.name.toLowerCase().includes(search)){
-			var latLng = new L.LatLng(st.localisation.lat,st.localisation.lg);
-		    var marker = new L.Marker(latLng,{title: st.name});
-		    markersCluster.addLayer(marker); //{title: cities[i][0]}
-	    	//var marker = L.marker([st.localisation.lat, st.localisation.lg]).addTo(macarte);
-	    	str += "<h3 style='text-align:center;'>" + st.name + "</h3>";
-	    	str += "<table class='popup_table'>" +
-	    			"<thead>"
-                    +"    <tr>"
-                    +"       <th class='popup_table'>Bike Available</th>"
-                    +"       <th class='popup_table'>Slot Available</th>"
-                    +"         <th class='popup_table'>Total Capacity</th>"
-                    +"    </tr>"
-                    +"</thead>"
-                    +"<tbody>"
-                    +"<tr>"
-                    +"    <td class='popup_table'>"+hist.bikeAvailable +"</td>"
-                    +"    <td class='popup_table'>"+hist.slotAvailable+"</td>"
-                    +"    <td class='popup_table'>"+st.capacity+"</td>"
-                    +"</tr>"
-                    +"</tbody>"
-                    +"</table>";
-   
-	    	marker.bindPopup(str);
+	    	var marker = L.marker([st.localisation.lat, st.localisation.lg]).addTo(macarte);
+	    	createInfo(st, marker);
 		}
 	}
 	//markersCluster.addTo(macarte);
 	macarte.addLayer(markersCluster);
+}
+
+function createInfo(st, marker) {
+	var str = "";
+	var hist = st.listHistoriqueStation[st.listHistoriqueStation.length - 1];
+	
+	str += "<h3 style='text-align:center;'>" + st.name + "</h3>";
+	str += "<table class='popup_table'>" +
+			"<thead>"
+            +"    <tr>"
+            +"       <th class='popup_table'>Bikes Available</th>"
+            +"       <th class='popup_table'>Slots Available</th>"
+            +"         <th class='popup_table'>Total Capacity</th>"
+            +"    </tr>"
+            +"</thead>"
+            +"<tbody>"
+            +"<tr>"
+            +"    <td class='popup_table'>"+hist.bikeAvailable +"</td>"
+            +"    <td class='popup_table'>"+hist.slotAvailable+"</td>"
+            +"    <td class='popup_table'>"+st.capacity+"</td>"
+            +"</tr>"
+            +"</tbody>"
+            +"</table>";
+
+	marker.bindPopup(str);
+	
 }
 
 function stationFilter(city, field){
@@ -296,11 +395,10 @@ function refreshStationFilter(city){
 		}
 	
 	    // Creer l'objet "macarte" et l'inserer dans l'element HTML qui a l'ID "map"
-	    macarte = L.map('map').setView([city.localisation.lat, city.localisation.lg], 13);
+	    macarte = L.map('map').setView([city.localisation.lat, city.localisation.lg], zoomArr);
 		
 	    // ajout des marqueurs pertinent
 	    createPopup(city);
-
 	    
 	    L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
 		    attribution: 'données © <a href="//osm.org/copyright">OpenStreetMap</a>/ODbL - rendu <a href="//openstreetmap.fr">OSM France</a>',
@@ -314,30 +412,32 @@ function refreshStationFilter(city){
 	    	if (control_begin_pointer) {
 		        var popLocation = e.latlng;
 		    	addPointer(popLocation, true);
-		    	refreshStationFilter(cityToShow);
+		    	//refreshStationFilter(cityToShow);
 	    	}
 	    	
 	    	if (control_end_pointer) {
 		        var popLocation = e.latlng;
 		    	addPointer(popLocation, false);
-		    	refreshStationFilter(cityToShow);
+		    	//refreshStationFilter(cityToShow);
 	    	}
 	    });
 		
 		// add the trip
-		if (pointers.length >= 8) {
-			L.Routing.control({
-			    waypoints: [
-			        L.latLng(pointers[0], pointers[1]),
-			        L.latLng(pointers[2], pointers[3]),
-			        L.latLng(pointers[4], pointers[5]),
-			        L.latLng(pointers[6], pointers[7])
-			    ],
-			    routeWhileDragging: false,
-			    useZoomParameter: false,
-        		router: L.Routing.graphHopper('62fcb6e5-14d3-4ac6-b64c-65eb9bcbb803')
-			}).addTo(macarte);
-		}
+		controlRouting = L.Routing.control({
+		    waypoints: [
+		        L.latLng(pointers[0 % pointers.length], pointers[1 % pointers.length]),
+		        L.latLng(pointers[2 % pointers.length], pointers[3 % pointers.length]),
+		        L.latLng(pointers[4 % pointers.length], pointers[5 % pointers.length]),
+		        L.latLng(pointers[6 % pointers.length], pointers[7 % pointers.length])
+		    ],
+		    routeWhileDragging: false,
+		    useZoomParameter: false,
+		    autoRoute: false,
+		    createMarker: myCreateMarker,
+    		router: L.Routing.graphHopper('62fcb6e5-14d3-4ac6-b64c-65eb9bcbb803')
+		}).addTo(macarte);
+		controlRouting.getPlan().draggableWaypoints = false;
+		controlRouting.route();
 	}
 }
 
@@ -357,10 +457,19 @@ function addRemoveTypeTransport(element, name){
 }
 
 function addTrip(begin){   // begin : bool
-	
+	// control button to add point
 	control_begin_pointer = begin;
 	control_end_pointer = !begin;
-		
+	
+	// change cursor for the map
+	if (begin)
+		document.getElementById('map').style.cursor = "url(../../../css/images/pointer-green-icon.png) 16 48, pointer";
+	else document.getElementById('map').style.cursor = "url(../../../css/images/pointer-red-icon.png) 16 48, pointer";
+}
+
+function changeCursor() {
+	document.getElementById('bd').style.cursor = 'progress';
+	document.getElementById('map').style.cursor = 'progress';
 }
 
 //window.onload = function(){

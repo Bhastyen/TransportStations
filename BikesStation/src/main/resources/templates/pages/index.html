@@ -23,7 +23,7 @@
     <link rel="stylesheet" href="../../../css/leaflet-routing-machine.css" th:href="@{/css/leaflet-routing-machine.css}" />
 </head>
 
-<body>
+<body id="bd">
 	<script type="text/javascript" src="../../../js/city_manager.js" th:href="@{/js/city_manager.js}"> </script>
 	
     <div id="my-left-panel">
@@ -33,7 +33,7 @@
 				 <form action ="/" th:method="${CityChoose == null || city.name != CityChoose.name? 'POST' : 'GET'}">
 				 	 <input type="hidden" id="lastCity" name="lastCity" onclick="" th:value="${CityChoose != null? CityChoose.name : ''}"/>
 		           	 <label for="city" th:class="${CityChoose == null || city.name != CityChoose.name? '' : 'active'}">
-		           		 <input type="submit" id="city" name="city" onclick="" th:value="${city.name}"/>
+		           		 <input type="submit" id="city" name="city" onclick="changeCursor();" th:value="${city.name}"/>
 		           	 </label>
 				 </form>
              </td>
@@ -42,7 +42,7 @@
 		<tr>
             <td>
 			 <form action ="/newCity" method="GET">
-	           	 <input type="submit" id="add" value="Ajouter une ville"/>
+	           	 <input type="submit" id="add" value="Add new city"/>
 			 </form>
             </td>
 		</tr>
@@ -60,17 +60,19 @@
 						<img alt="Bus" src="../../../css/images/icon-bus.png" th:href="@{/css/images/icon-bus.png}">
 					</div-->
 					<div th:if="${CityChoose}" id="select_begin" th:onclick="addTrip(true);">
-						<img alt="Bus" src="../../../css/images/icon-bus.png" th:href="@{/css/images/icon-bus.png}">
+						<img alt="Begin Pointer" src="../../../css/images/pointer-green.png" th:href="@{/css/images/pointer-green.png}">
+						<!-- https://www.needpix.com/photo/823797/pointer-map-icon-gps-marker-travel-business-sign-symbol -->
 					</div>
 				</div>
 				
 				<div id="search">
-					<input type="text" placeholder="Entrez le nom de la station" th:oninput="stationFilter(/*[[${CityChoose}]]*/, this);"/>
+					<input type="text" placeholder="Enter the name of station" th:oninput="stationFilter(/*[[${CityChoose}]]*/, this);"/>
 				</div>
 				
 				<div id="transport2_container">
 					<div th:if="${CityChoose}" id="select_end" th:onclick="addTrip(false);">
-						<img alt="Train" src="../../../css/images/icon-train.png" th:href="@{/css/images/icon-train.png}">
+						<img alt="Arrival Pointer" src="../../../css/images/pointer-red.png" th:href="@{/css/images/pointer-red.png}">
+						<!-- https://www.needpix.com/photo/823797/pointer-map-icon-gps-marker-travel-business-sign-symbol -->
 					</div>
 					<!-- div id="select_subway" th:onclick="addRemoveTypeTransport(this, 'Subway'); refreshStationFilter(/*[[${CityChoose}]]*/);">
 						<img alt="Subway" src="../../../css/images/icon-train.png" th:href="@{/css/images/icon-train.png}">
@@ -92,22 +94,22 @@
 			<script type="text/javascript" src="../../../js/map_manager.js" th:href="@{/js/map_manager.js}"></script>
 			
 			<script type="text/javascript" th:inline="javascript" th:if="${CityChoose == null && lastLocCity == null}">
-				initMap(/*[[${Cities}]]*/, 45.43992, 4.3896303, 4);
+				initMap(/*[[${Cities}]]*/, 45.43992, 4.3896303, 3);
 			</script>
 			
 			<script type="text/javascript" th:inline="javascript" th:if="${CityChoose != null && lastLocCity == null}">
-				initMap(/*[[${Cities}]]*/, /*[[${CityChoose.localisation.lat}]]*/, /*[[${CityChoose.localisation.lg}]]*/, 4);
+				initMap(/*[[${Cities}]]*/, /*[[${CityChoose.localisation.lat}]]*/, /*[[${CityChoose.localisation.lg}]]*/, 3);
 				goToCity(/*[[${CityChoose}]]*/);
 				updateCityToShow(/*[[${CityChoose}]]*/);
 			</script>
 			
 			<script type="text/javascript" th:inline="javascript" th:if="${CityChoose == null && lastLocCity != null}">
-				initMap(/*[[${Cities}]]*/, /*[[${lastLocCity.lat}]]*/, /*[[${lastLocCity.lg}]]*/, 12);
+				initMap(/*[[${Cities}]]*/, /*[[${lastLocCity.lat}]]*/, /*[[${lastLocCity.lg}]]*/, 13);
         		reinitMap(/*[[${lastLocCity}]]*/);
 			</script>
 			
 			<script type="text/javascript" th:inline="javascript" th:if="${CityChoose != null && lastLocCity != null}">
-				initMap(null, /*[[${lastLocCity.lat}]]*/, /*[[${lastLocCity.lg}]]*/, 12);
+				initMap(null, /*[[${lastLocCity.lat}]]*/, /*[[${lastLocCity.lg}]]*/, 13);
 				changeCity(/*[[${lastLocCity}]]*/, /*[[${CityChoose}]]*/);
 				updateCityToShow(/*[[${CityChoose}]]*/);
 			</script>
