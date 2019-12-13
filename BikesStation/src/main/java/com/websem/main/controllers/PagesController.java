@@ -70,7 +70,8 @@ import com.websem.main.models.LocalisationCity;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import com.fasterxml.jackson.dataformat.xml.*;;
+
+
 
 @Controller
 public class PagesController {
@@ -204,13 +205,6 @@ public class PagesController {
 			model.put("error", "Error : the format of json file is not compatible.");
 			return "pages/newCity";
 		}
-
-		/*System.out.println(champsJson.get("stationParentNode"));
-		System.out.println(champsJson.get("stationId"));
-		System.out.println(champsJson.get("stationName"));
-		System.out.println(champsJson.get("stationLat"));
-		System.out.println(champsJson.get("stationLon"));
-		System.out.println(champsJson.get("stationCapacity"));*/
 
 		System.out.println("Name " + champsJson.get("stationName"));
 
